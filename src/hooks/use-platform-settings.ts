@@ -22,10 +22,10 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   logo_dark_url: null,
   social_links: [],
   hero_image_url: null,
-  hero_headline: "رحلتك في العلم\nتبدأ من هنا",
+  hero_headline: "الأستاذة منى كامل محمود\nمعلم أول رياضيات",
   hero_subtext:
-    "دروس منظّمة، متابعة مستمرة، واختبارات تفاعلية تقيس تقدّمك خطوة بخطوة — كل ما تحتاجه للتفوّق في مكان واحد.",
-  hero_cta_label: "تصفح الكورسات",
+    "نصنع من الرياضيات متعة، ونبني مستقبلاً مشرقاً لأبنائنا في جميع المراحل التعليمية الإعدادية والثانوية.",
+  hero_cta_label: "استعراض الصفوف والدورات",
   hero_cta_url: "/courses",
 };
 

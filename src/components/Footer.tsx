@@ -71,9 +71,9 @@ const Footer = () => {
   const { theme } = useTheme();
 
   const logoUrl =
-    theme === "dark" && settings.logo_dark_url
-      ? settings.logo_dark_url
-      : settings.logo_light_url || "/logo.png";
+    theme === "dark"
+      ? (settings.logo_dark_url || "/logo-dark.png")
+      : (settings.logo_light_url || "/logo-light.png");
 
   // Use DB social links if any, otherwise fall back to hardcoded defaults so the
   // footer is never empty before the admin first configures things.
@@ -87,67 +87,57 @@ const Footer = () => {
         ];
 
   return (
-    <footer className="py-12 border-t border-border relative overflow-hidden">
-      {/* Subtle corner ornament */}
-      <EightPointStar size={80} className="absolute -bottom-6 -left-6 text-primary/[0.03]" />
-      <EightPointStar size={60} className="absolute -top-4 -right-4 text-primary/[0.03]" />
+    <footer className="py-12 px-6 border-t border-border/50 text-center bg-background relative overflow-hidden">
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+        <div className="text-right flex items-center gap-3">
+          <img src={logoUrl} alt="منصة الأستاذة منى كامل" className="h-16 sm:h-20 w-auto max-h-20 object-contain" />
+          <div>
+            <h3 className="text-2xl font-bold text-primary mb-1">الأستاذة منى كامل</h3>
+            <p className="text-sm text-muted-foreground">منصة تعليمية متكاملة لتدريس الرياضيات للمراحل الإعدادية والثانوية</p>
+          </div>
+        </div>
 
-      <div className="container mx-auto px-4 relative z-10">
-        <IslamicDivider className="mb-8" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="space-y-3">
-            <div className="flex items-center">
-              <img src={logoUrl} alt="الساعي" className="h-14 w-14 rounded-lg object-contain" />
-            </div>
-            <p className="text-sm text-muted-foreground">منصة تعليمية متكاملة لشرح العلوم الشرعية</p>
-          </div>
-          <div className="space-y-3">
-            <h4 className="font-bold text-sm">روابط سريعة</h4>
-            <div className="flex flex-col gap-2">
-              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">الرئيسية</Link>
-              <Link to="/courses" className="text-sm text-muted-foreground hover:text-foreground transition-colors">الدورات التعليمية</Link>
-              <Link to="/books" className="text-sm text-muted-foreground hover:text-foreground transition-colors">الكتب والمراجع</Link>
-              <Link to="/branches" className="text-sm text-muted-foreground hover:text-foreground transition-colors">أماكن التواجد (أماكن الشرح)</Link>
-              <Link to="/leaderboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">لوحة المتصدرين</Link>
-              <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">لوحة الطالب</Link>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <h4 className="font-bold text-sm">تواصل معنا</h4>
-            <div className="flex items-center gap-3 flex-wrap">
-              {socialLinks.map((link, i) => (
-                <a
-                  key={i}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={link.platform}
-                  title={link.platform}
-                  className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
-                >
-                  {getSocialIcon(link.platform)}
-                </a>
-              ))}
-            </div>
-          </div>
+        <div className="flex flex-wrap justify-center gap-8 text-sm font-medium">
+          <Link to="/" className="hover:text-primary transition-colors">الرئيسية</Link>
+          <Link to="/courses" className="hover:text-primary transition-colors">الدورات</Link>
+          <Link to="/books" className="hover:text-primary transition-colors">الكتب</Link>
+          <Link to="/branches" className="hover:text-primary transition-colors">أماكن التواجد</Link>
+          <Link to="/leaderboard" className="hover:text-primary transition-colors">المتصدرين</Link>
         </div>
-        <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>جميع الحقوق محفوظة لمنصة الساعي {new Date().getFullYear()} ©</p>
-          <a
-            href="https://fakarli.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            title="فكرلي - Fakarli Studio"
-          >
-            <span>تم التطوير بواسطة</span>
-            <img
-              src={theme === "dark" ? "/fakarli-logo.png" : "/fakarli-logo-light.png"}
-              alt="Fakarli"
-              className="h-6 object-contain"
-            />
-          </a>
+
+        <div className="flex items-center gap-3">
+          {socialLinks.map((link, i) => (
+            <a
+              key={i}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={link.platform}
+              title={link.platform}
+              className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
+            >
+              {getSocialIcon(link.platform)}
+            </a>
+          ))}
         </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto mt-8 pt-6 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+        <p>جميع الحقوق محفوظة © {new Date().getFullYear()} منصة الأستاذة منى كامل - رياضيات</p>
+        <a
+          href="https://fakarli.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          title="فكرلي - Fakarli Studio"
+        >
+          <span>تم التطوير بواسطة</span>
+          <img
+            src={theme === "dark" ? "/fakarli-logo.png" : "/fakarli-logo-light.png"}
+            alt="Fakarli"
+            className="h-5 object-contain"
+          />
+        </a>
       </div>
     </footer>
   );

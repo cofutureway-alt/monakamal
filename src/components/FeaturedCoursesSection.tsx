@@ -16,52 +16,39 @@ const FeaturedCoursesSection = () => {
   if (courses.length === 0) return null;
 
   return (
-    <section id="featured-courses" className="py-24 relative overflow-hidden bg-accent/10">
-      <EightPointStar size={70} className="absolute top-12 right-12 text-primary/5 animate-spin-slow" />
-      <EightPointStar size={50} className="absolute bottom-12 left-12 text-primary/5 animate-float" />
+    <section id="featured-courses" className="py-24 px-6 relative overflow-hidden bg-background">
+      <EightPointStar size={70} className="absolute top-12 right-12 text-primary/5 animate-spin-slow pointer-events-none" />
+      <EightPointStar size={50} className="absolute bottom-12 left-12 text-accent/20 animate-float pointer-events-none" />
 
-      <div className="container mx-auto px-4 relative z-10" ref={ref}>
-        <IslamicDivider className="mb-8" />
-
+      <div className="max-w-6xl mx-auto relative z-10" ref={ref}>
         {/* Header row */}
-        <div
-          className={`flex flex-col items-center gap-3 mb-4 transition-all duration-700 ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-          }`}
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-            <Star className="w-4 h-4 text-primary animate-pulse-soft" fill="currentColor" />
-            <span className="text-xs font-bold text-primary">مختارة بعناية لك</span>
-            <Sparkles className="w-4 h-4 text-primary animate-float" />
+        <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 text-accent font-bold text-xs uppercase tracking-widest border border-accent/20">
+            <Star className="w-4 h-4 text-accent fill-accent/20" />
+            <span>مختارة بعناية لك</span>
+            <Sparkles className="w-4 h-4 text-accent" />
           </div>
+
+          <h2 className="text-3xl md:text-5xl font-bold text-primary tracking-tight">
+            الدورات التعليمية المميزة
+          </h2>
+
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            نخبة من أفضل الدورات التدريبية المتاحة على المنصة لمساعدتك على التفوق
+          </p>
         </div>
 
-        <h2
-          className={`text-3xl md:text-5xl font-extrabold text-center mb-3 transition-all duration-700 delay-75 ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-        >
-          الدورات المميزة
-        </h2>
-        <p
-          className={`text-muted-foreground text-center mb-14 max-w-xl mx-auto transition-all duration-700 delay-100 ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-        >
-          نخبة من أفضل الدورات على المنصة، اخترناها لتناسب رحلتك التعليمية وتساعدك على التميّز
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {courses.map((c, i) => (
             <CourseCard key={c.id} course={c} index={i} progress={progressMap[c.id]} />
           ))}
         </div>
 
-        <div className="text-center mt-12">
-          <Button asChild size="lg" variant="outline" className="gap-2 font-bold hover:scale-105 transition-transform">
+        <div className="text-center mt-14">
+          <Button asChild size="lg" className="bg-primary text-primary-foreground gap-3 font-bold text-lg px-10 py-6 rounded-2xl hover:shadow-xl hover:shadow-primary/20 transition-all">
             <Link to="/courses">
               عرض جميع الدورات
-              <ArrowLeft size={18} />
+              <ArrowLeft size={20} />
             </Link>
           </Button>
         </div>

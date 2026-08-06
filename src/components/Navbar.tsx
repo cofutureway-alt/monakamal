@@ -30,9 +30,9 @@ const Navbar = () => {
   const location = useLocation();
 
   const logoUrl =
-    theme === "dark" && settings.logo_dark_url
-      ? settings.logo_dark_url
-      : settings.logo_light_url || "/logo.png";
+    theme === "dark"
+      ? (settings.logo_dark_url || "/logo-dark.png")
+      : (settings.logo_light_url || "/logo-light.png");
 
 
   const links = [
@@ -167,23 +167,26 @@ const Navbar = () => {
         : "/dashboard";
 
   return (
-    <nav className="fixed top-0 right-0 left-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
-      <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <Link to="/" className="flex items-center">
-          <img src={logoUrl} alt="شعار الساعي" className="h-14 w-14 rounded-lg object-contain" />
+    <nav className="sticky top-0 right-0 left-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-2.5">
+      <div className="container mx-auto flex items-center justify-between min-h-[4.5rem]">
+        <Link to="/" className="flex items-center group py-1">
+          <img src={logoUrl} alt="منصة الأستاذة منى كامل" className="h-16 sm:h-20 md:h-24 w-auto max-h-24 object-contain transition-transform group-hover:scale-105" />
         </Link>
 
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-6 text-sm font-medium">
           {links.map((l) => (
             <a
               key={l.href}
               href={l.href}
               onClick={(e) => handleNav(e, l.href)}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="text-foreground/80 hover:text-primary transition-colors cursor-pointer py-1 font-semibold"
             >
               {l.label}
             </a>
           ))}
+        </div>
+
+        <div className="hidden md:flex items-center gap-3">
           <ThemeToggle />
           {user && profile?.role !== "admin" && <WalletWidget to="/dashboard/wallet" />}
           {user && profile?.role === "admin" && <WalletWidget to="/admin/wallets" />}

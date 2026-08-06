@@ -1,4 +1,4 @@
-project_id = "mgrkbcipkmikggmiyvwm"
+project_id = "mnlmwekclurudjuhcgzw"
 
 [functions.admin-create-student]
 verify_jwt = true

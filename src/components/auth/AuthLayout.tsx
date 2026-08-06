@@ -4,6 +4,9 @@ import { motion } from "framer-motion";
 import { EightPointStar, CrescentStar, IslamicDivider } from "@/components/IslamicPatterns";
 import ThemeToggle from "@/components/ThemeToggle";
 
+import { useTheme } from "@/contexts/ThemeContext";
+import { usePlatformSettings } from "@/hooks/use-platform-settings";
+
 interface Props {
   title: string;
   subtitle: string;
@@ -12,12 +15,19 @@ interface Props {
 }
 
 const AuthLayout = ({ title, subtitle, children, footer }: Props) => {
+  const { theme } = useTheme();
+  const { settings } = usePlatformSettings();
+  const logoUrl =
+    theme === "dark"
+      ? (settings.logo_dark_url || "/logo-dark.png")
+      : (settings.logo_light_url || "/logo-light.png");
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-background flex items-center justify-center p-4">
       <div className="absolute top-4 left-4 z-20">
         <ThemeToggle />
       </div>
-      {/* Islamic geometric background pattern */}
+      {/* Geometric background pattern */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06] pointer-events-none"
         style={{
@@ -47,7 +57,7 @@ const AuthLayout = ({ title, subtitle, children, footer }: Props) => {
             className="flex justify-center mb-6"
           >
             <Link to="/">
-              <img src="/logo.png" alt="الساعي" className="h-16 w-16 rounded-xl object-contain" />
+              <img src={logoUrl} alt="منصة الأستاذة منى كامل" className="h-16 w-auto max-h-20 object-contain" />
             </Link>
           </motion.div>
 

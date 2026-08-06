@@ -97,7 +97,7 @@ export default function Books() {
   const [stageId, setStageId] = useState<string>("all");
 
   useEffect(() => {
-    document.title = "الكتب — الساعي";
+    document.title = "الكتب والمذكرة — منصة الأستاذة منى كامل";
   }, []);
 
   useEffect(() => {

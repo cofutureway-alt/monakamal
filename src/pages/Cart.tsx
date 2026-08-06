@@ -39,7 +39,7 @@ export default function Cart() {
   const [now] = useState(new Date());
 
   useEffect(() => {
-    document.title = "سلة الكتب — الساعي";
+    document.title = "سلة المذكرات والكتب — منصة الأستاذة منى كامل";
   }, []);
 
   const lines = useMemo(

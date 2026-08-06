@@ -15,7 +15,7 @@ export default function Branches() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = "أماكن التواجد (الأماكن التي يشرح بها المعلم) — الساعي";
+    document.title = "أماكن التواجد (الأماكن التي تشرح بها المعلمة) — منصة الأستاذة منى كامل";
     let isMounted = true;
     (async () => {
       try {
@@ -62,26 +62,24 @@ export default function Branches() {
     <div className="min-h-screen bg-background flex flex-col justify-between" dir="rtl">
       <Navbar />
 
-      <main className="flex-1 pt-24 pb-20 relative overflow-hidden">
+      <main className="flex-1 pt-12 pb-24 px-4 sm:px-6 relative overflow-hidden bg-background">
         {/* Glow ambient background lights */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-primary/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-primary/5 rounded-full blur-[140px] pointer-events-none" />
 
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="max-w-6xl mx-auto relative z-10">
           {/* Header Banner */}
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
-            <IslamicDivider className="mb-4" />
-
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary shadow-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 text-accent border border-accent/20 text-xs font-bold shadow-sm">
               <Landmark size={14} />
               <span>أماكن الشرح المباشر</span>
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-extrabold text-foreground tracking-tight">
-              أماكن التواجد
+            <h1 className="text-3xl md:text-5xl font-bold text-primary tracking-tight">
+              أماكن التواجد والمراكز
             </h1>
 
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-              الأماكن والمراكز اللي بيشرح فيها المعلم وتقدر تحضر فيها المحاضرات والدروس مباشر في المحافظات المختلفة
+              الأماكن والمراكز المعتمَدة التي يحضر فيها الطلاب المحاضرات والدروس المباشرة
             </p>
           </div>
 
@@ -92,71 +90,63 @@ export default function Branches() {
                 <div key={i} className="space-y-4">
                   <Skeleton className="h-8 w-40 rounded-lg" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Skeleton className="h-36 rounded-2xl" />
-                    <Skeleton className="h-36 rounded-2xl" />
+                    <Skeleton className="h-40 rounded-[2rem]" />
+                    <Skeleton className="h-40 rounded-[2rem]" />
                   </div>
                 </div>
               ))}
             </div>
           ) : groupedBranches.length === 0 ? (
             /* Empty State */
-            <div className="max-w-md mx-auto text-center py-16 px-6 rounded-3xl border border-dashed border-border bg-card/40">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+            <div className="max-w-md mx-auto text-center py-16 px-6 rounded-[2rem] border border-dashed border-border bg-card">
+              <div className="w-16 h-16 rounded-2xl bg-accent/10 text-accent flex items-center justify-center mx-auto mb-4">
                 <Building2 size={32} />
               </div>
-              <h3 className="text-xl font-bold mb-2">مفيش أماكن متضافة دلوقتي</h3>
+              <h3 className="text-xl font-bold mb-2">لا توجد أماكن متوفرة حالياً</h3>
               <p className="text-sm text-muted-foreground">
-                تابعنا قريب عشان تعرف الأماكن والمراكز الجديدة في محافظتك أول بأول.
+                تابعنا قريباً لمعرفة الأماكن والمراكز الجديدة في محافظتك أولاً بأول.
               </p>
             </div>
           ) : (
             /* Grouped Branches List */
-            <div className="space-y-12 max-w-5xl mx-auto">
+            <div className="space-y-14 max-w-5xl mx-auto">
               {groupedBranches.map((group, idx) => (
                 <motion.div
                   key={group.governorate}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: idx * 0.1 }}
-                  className="space-y-5"
+                  className="space-y-6"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-8 bg-primary rounded-full" />
-                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <div className="w-3 h-8 bg-accent rounded-full" />
+                    <h2 className="text-2xl font-bold text-primary flex items-center gap-3">
                       <span>محافظة {group.governorate}</span>
-                      <Badge variant="secondary" className="text-xs font-semibold">
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-secondary text-primary">
                         {group.items.length} {group.items.length === 1 ? "مكان" : "أماكن"}
-                      </Badge>
+                      </span>
                     </h2>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {group.items.map((branch) => (
                       <Card
                         key={branch.id}
-                        className="group relative rounded-2xl p-6 bg-card/60 backdrop-blur-xl border border-border/70 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 flex flex-col justify-between"
+                        className="group relative rounded-[2rem] p-8 bg-card border border-border hover:border-primary hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300 flex flex-col justify-between"
                       >
-                        {/* Top Accent line on hover */}
-                        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                        {/* Corner Ornament */}
-                        <div className="absolute top-3 left-3 opacity-[0.06] group-hover:opacity-[0.15] transition-opacity">
-                          <EightPointStar size={40} className="text-primary" />
-                        </div>
-
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
-                              <Building2 className="w-5 h-5 text-primary shrink-0" />
+                            <h3 className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors flex items-center gap-3">
+                              <Building2 className="w-6 h-6 text-primary shrink-0" />
                               <span>{branch.branch_name}</span>
                             </h3>
-                            <Badge variant="outline" className="text-xs shrink-0">
+                            <span className="text-xs font-bold px-3 py-1 rounded-full bg-accent/10 text-accent border border-accent/20 shrink-0">
                               {branch.governorate}
-                            </Badge>
+                            </span>
                           </div>
 
-                          <div className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed pt-1">
-                            <MapPin className="w-4 h-4 text-primary shrink-0 mt-1" />
+                          <div className="flex items-start gap-3 text-sm text-muted-foreground leading-relaxed pt-2">
+                            <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                             <span>{branch.address_details}</span>
                           </div>
                         </div>

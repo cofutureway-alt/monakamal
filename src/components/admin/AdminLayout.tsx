@@ -36,7 +36,8 @@ import {
   Coins,
   Truck,
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { usePlatformSettings } from "@/hooks/use-platform-settings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -289,11 +290,18 @@ const SidebarContent = ({
     if (defaultOpen) setOpenId(defaultOpen);
   }, [defaultOpen]);
 
+  const { theme } = useTheme();
+  const { settings } = usePlatformSettings();
+  const logoUrl =
+    theme === "dark"
+      ? (settings.logo_dark_url || "/logo-dark.png")
+      : (settings.logo_light_url || "/logo-light.png");
+
   return (
     <div className="flex h-full flex-col">
       <div className={`${collapsed ? "px-3" : "px-6"} py-6 border-b border-border/60`}>
         <NavLink to="/" className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} group`}>
-          <img src="/logo.png" alt="شعار الساعي" className="h-11 w-11 rounded-lg object-contain" />
+          <img src={logoUrl} alt="منصة الأستاذة منى كامل" className="h-10 sm:h-12 w-auto max-h-12 object-contain" />
           {!collapsed && (
             <div>
               <div className="font-bold text-foreground leading-tight">لوحة الإدارة</div>

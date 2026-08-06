@@ -8,77 +8,87 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
-const RANK_CFG: Record<number, { icon: JSX.Element; border: string; bg: string; shadow: string; order: string; delay: string; badge: string; badgeBg: string; isFirst: boolean }> = {
+const RANK_CFG: Record<number, { icon: JSX.Element; badgeBg: string; badgeText: string; isFirst: boolean; gridOrder: string }> = {
   1: {
-    icon: <Crown className="text-gold w-6 h-6 md:w-8 md:h-8" />,
-    border: "border-gold/50",
-    bg: "bg-gold/10",
-    shadow: "shadow-[0_0_20px_-5px_hsl(var(--gold)/0.3)]",
-    order: "order-2",
-    delay: "200ms",
-    badge: "الأول",
-    badgeBg: "bg-gold text-foreground",
+    icon: <Crown className="text-amber-500 w-4 h-4 sm:w-6 sm:h-6 drop-shadow" strokeWidth={2.2} />,
+    badgeBg: "bg-amber-500 text-white shadow-amber-500/20",
+    badgeText: "الأول",
     isFirst: true,
+    gridOrder: "order-2",
   },
   2: {
-    icon: <Medal className="text-silver w-5 h-5 md:w-7 md:h-7" />,
-    border: "border-silver/50",
-    bg: "bg-silver/10",
-    shadow: "shadow-[0_0_15px_-5px_hsl(var(--silver)/0.3)]",
-    order: "order-1",
-    delay: "100ms",
-    badge: "الثاني",
-    badgeBg: "bg-silver text-foreground",
+    icon: <Medal className="text-slate-300 w-3.5 h-3.5 sm:w-5 sm:h-5 drop-shadow" strokeWidth={2.2} />,
+    badgeBg: "bg-slate-400 text-white shadow-slate-400/20",
+    badgeText: "الثاني",
     isFirst: false,
+    gridOrder: "order-1",
   },
   3: {
-    icon: <Medal className="text-bronze w-5 h-5 md:w-7 md:h-7" />,
-    border: "border-bronze/50",
-    bg: "bg-bronze/10",
-    shadow: "shadow-[0_0_15px_-5px_hsl(var(--bronze)/0.3)]",
-    order: "order-3",
-    delay: "300ms",
-    badge: "الثالث",
-    badgeBg: "bg-bronze text-foreground",
+    icon: <Medal className="text-amber-700 w-3.5 h-3.5 sm:w-5 sm:h-5 drop-shadow" strokeWidth={2.2} />,
+    badgeBg: "bg-amber-700 text-white shadow-amber-700/20",
+    badgeText: "الثالث",
     isFirst: false,
+    gridOrder: "order-3",
   },
 };
 
 const TopThreeCard = ({ row, rank, isVisible }: { row: any; rank: 1 | 2 | 3; isVisible: boolean }) => {
   const config = RANK_CFG[rank];
-  const initials = (row.full_name || "؟").split(" ").filter(Boolean).slice(0, 2).map((s: string) => s[0]).join("").toUpperCase();
+  const initials = (row.full_name || "؟")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s: string) => s[0])
+    .join("")
+    .toUpperCase();
+
   return (
     <div
-      className={`relative flex flex-col items-center gap-2 md:gap-4 p-3 md:p-6 rounded-2xl border-2 ${config.border} ${config.bg} ${config.shadow} ${config.order} transition-all duration-700 hover:-translate-y-2 hover:shadow-xl ${config.isFirst ? "md:scale-110 self-stretch" : "self-end"} ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}
-      style={{ transitionDelay: config.delay }}
+      className={`relative flex flex-col items-center p-2.5 sm:p-5 pt-6 sm:pt-8 rounded-2xl sm:rounded-[2rem] border border-border/80 bg-card/90 shadow-lg transition-all duration-300 ${
+        config.gridOrder
+      } ${config.isFirst ? "min-h-[220px] sm:min-h-[300px] md:min-h-[340px] -translate-y-2 sm:-translate-y-3 border-amber-500/40" : "min-h-[190px] sm:min-h-[260px] md:min-h-[290px]"} ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      }`}
     >
-      <div className={`absolute -top-3 px-3 md:px-4 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold ${config.badgeBg}`}>
-        {config.badge}
+      {/* Top Pill Badge */}
+      <div
+        className={`absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 sm:px-5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold shadow-md tracking-wide whitespace-nowrap ${config.badgeBg}`}
+      >
+        {config.badgeText}
       </div>
-      <div className="relative mt-2">
-        <div className={`w-14 h-14 md:w-20 md:h-20 rounded-full border-2 ${config.border} overflow-hidden`}>
-          <Avatar className="w-full h-full">
-            <AvatarImage src={row.avatar_url ?? undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary font-bold">{initials || <User className="w-5 h-5" />}</AvatarFallback>
+
+      {/* Avatar Container */}
+      <div className="relative mt-2 sm:mt-3 mb-2 sm:mb-3">
+        <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full border-2 border-border/80 bg-background/50 flex items-center justify-center p-0.5 shadow-inner">
+          <Avatar className="w-full h-full rounded-full">
+            <AvatarImage src={row.avatar_url ?? undefined} className="object-cover" />
+            <AvatarFallback className="bg-primary/5 text-foreground text-sm sm:text-lg font-extrabold">
+              {initials || <User className="w-5 h-5" />}
+            </AvatarFallback>
           </Avatar>
         </div>
-        <div className="absolute -bottom-1 -right-1">{config.icon}</div>
-        <div className="absolute -top-1 -left-1 opacity-30">
-          <EightPointStar size={12} className="text-primary" />
+
+        {/* Math Symbol Watermark */}
+        <div className="absolute top-0.5 left-0 text-[8px] sm:text-[10px] font-bold text-muted-foreground/40 border border-muted-foreground/20 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center">
+          π
+        </div>
+
+        {/* Crown / Medal Badge */}
+        <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 sm:p-1 border border-border/60 shadow-md">
+          {config.icon}
         </div>
       </div>
-      <h3 className="text-xs md:text-base font-bold text-foreground text-center leading-tight line-clamp-1 max-w-full">
+
+      {/* Student Name */}
+      <h3 className="text-[11px] sm:text-xs md:text-sm font-bold text-foreground text-center line-clamp-2 leading-tight w-full min-h-[2.25rem] flex items-center justify-center my-1 break-words">
         {row.full_name || "بدون اسم"}
       </h3>
-      <div className="flex items-baseline gap-1">
-        <span className="text-base md:text-2xl font-extrabold text-primary tabular-nums">{row.total_points}</span>
-        <span className="text-[9px] md:text-xs text-muted-foreground">نقطة</span>
+
+      {/* Points */}
+      <div className="mt-auto flex items-baseline justify-center gap-1 sm:gap-1.5 pt-1">
+        <span className="text-lg sm:text-2xl md:text-3xl font-black text-foreground tabular-nums">{row.total_points}</span>
+        <span className="text-[10px] sm:text-xs font-bold text-muted-foreground">نقطة</span>
       </div>
-      {row.badge_count > 0 && (
-        <div className="text-[10px] md:text-xs text-amber-600 inline-flex items-center gap-1 font-bold">
-          <Award className="w-3 h-3" /> {row.badge_count}
-        </div>
-      )}
     </div>
   );
 };

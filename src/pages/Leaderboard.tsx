@@ -26,7 +26,7 @@ export default function LeaderboardPage() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 text-xs font-bold mb-4">
               <Sparkles className="w-3.5 h-3.5" />
-              أوائل الساعي
+              أوائل متفوقي الرياضيات
             </div>
             <h1 className="text-4xl md:text-6xl font-black">المتصدرون</h1>
             <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
@@ -44,8 +44,8 @@ export default function LeaderboardPage() {
             </Card>
           ) : (
             <>
-              {/* Podium — mobile stacked, desktop 3 columns */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto items-end mb-12">
+              {/* Podium — 3 columns on mobile and desktop */}
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-4 md:gap-6 max-w-5xl mx-auto items-end mb-12">
                 {top3.length >= 3 && <PodiumSlot rank={3} row={top3[2]} delay={0} />}
                 {top3.length >= 2 && <PodiumSlot rank={2} row={top3[1]} delay={0.15} />}
                 {top3.length >= 1 && <PodiumSlot rank={1} row={top3[0]} delay={0.3} />}
@@ -103,40 +103,65 @@ export default function LeaderboardPage() {
 
 function PodiumSlot({ rank, row, delay }: { rank: 1 | 2 | 3; row: any; delay: number }) {
   const cfg = rank === 1
-    ? { color: "amber", label: "الأول", tone: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/60", ring: "shadow-[0_0_50px_hsl(45_95%_55%/0.35)]", height: "md:min-h-[340px]", Icon: Crown, size: "w-24 h-24 md:w-28 md:h-28", order: "md:order-2" }
+    ? { badgeText: "الأول", badgeBg: "bg-amber-500 text-white shadow-amber-500/20", icon: <Crown className="text-amber-500 w-4 h-4 sm:w-6 sm:h-6 drop-shadow" strokeWidth={2.2} />, height: "min-h-[220px] sm:min-h-[300px] md:min-h-[340px] -translate-y-2 sm:-translate-y-3 border-amber-500/40", order: "order-2" }
     : rank === 2
-    ? { color: "slate", label: "الثاني", tone: "text-slate-400", bg: "bg-slate-400/10", border: "border-slate-400/60", ring: "shadow-[0_0_35px_hsl(215_20%_75%/0.3)]", height: "md:min-h-[290px]", Icon: Medal, size: "w-20 h-20 md:w-24 md:h-24", order: "md:order-3" }
-    : { color: "amber", label: "الثالث", tone: "text-amber-700", bg: "bg-amber-700/10", border: "border-amber-700/60", ring: "shadow-[0_0_30px_hsl(30_60%_45%/0.3)]", height: "md:min-h-[260px]", Icon: Medal, size: "w-20 h-20 md:w-24 md:h-24", order: "md:order-1" };
+    ? { badgeText: "الثاني", badgeBg: "bg-slate-400 text-white shadow-slate-400/20", icon: <Medal className="text-slate-300 w-3.5 h-3.5 sm:w-5 sm:h-5 drop-shadow" strokeWidth={2.2} />, height: "min-h-[190px] sm:min-h-[260px] md:min-h-[290px]", order: "order-1" }
+    : { badgeText: "الثالث", badgeBg: "bg-amber-700 text-white shadow-amber-700/20", icon: <Medal className="text-amber-700 w-3.5 h-3.5 sm:w-5 sm:h-5 drop-shadow" strokeWidth={2.2} />, height: "min-h-[190px] sm:min-h-[260px] md:min-h-[290px]", order: "order-3" };
+
+  const initials = (row.full_name || "؟")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s: string) => s[0])
+    .join("")
+    .toUpperCase();
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 60 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, type: "spring", stiffness: 90, damping: 14 }}
+      transition={{ delay, duration: 0.4 }}
       className={cfg.order}
     >
-      <Card className={`p-6 text-center border-2 ${cfg.border} ${cfg.bg} ${cfg.ring} ${cfg.height} h-full flex flex-col items-center justify-end`}>
-        <cfg.Icon className={`${cfg.tone} w-8 h-8 mx-auto`} />
-        <div className={`text-xs font-black uppercase tracking-wider mt-1 ${cfg.tone}`}>{cfg.label}</div>
-        <div className="mt-4">
-          <Avatar className={`${cfg.size} border-4 ${cfg.border} mx-auto`}>
-            <AvatarImage src={row.avatar_url ?? undefined} />
-            <AvatarFallback><User className="w-8 h-8" /></AvatarFallback>
-          </Avatar>
+      <div className={`relative flex flex-col items-center p-2.5 sm:p-5 pt-6 sm:pt-8 rounded-2xl sm:rounded-[2rem] border border-border/80 bg-card/90 shadow-lg transition-all duration-300 hover:-translate-y-2 ${cfg.height}`}>
+        {/* Top Pill Badge */}
+        <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 sm:px-5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold shadow-md tracking-wide whitespace-nowrap ${cfg.badgeBg}`}>
+          {cfg.badgeText}
         </div>
-        <div className="font-black text-lg mt-3 truncate max-w-full">{row.full_name || "بدون اسم"}</div>
-        {row.level_name && (
-          <div className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-1">
-            {row.level_icon_url && <img src={row.level_icon_url} className="w-4 h-4" alt="" />}
-            {row.level_name}
+
+        {/* Avatar Container */}
+        <div className="relative mt-2 sm:mt-3 mb-2 sm:mb-3">
+          <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full border-2 border-border/80 bg-background/50 flex items-center justify-center p-0.5 shadow-inner">
+            <Avatar className="w-full h-full rounded-full">
+              <AvatarImage src={row.avatar_url ?? undefined} className="object-cover" />
+              <AvatarFallback className="bg-primary/5 text-foreground text-sm sm:text-lg font-extrabold">
+                {initials || <User className="w-5 h-5" />}
+              </AvatarFallback>
+            </Avatar>
           </div>
-        )}
-        <div className={`mt-3 text-3xl font-black ${cfg.tone}`}>{row.total_points}</div>
-        <div className="text-[11px] text-muted-foreground">نقطة</div>
-        <div className="mt-2 inline-flex items-center gap-1 text-xs text-amber-600 font-bold">
-          <Award className="w-3.5 h-3.5" /> {row.badge_count} شارة
+
+          {/* Math Symbol Watermark */}
+          <div className="absolute top-0.5 left-0 text-[8px] sm:text-[10px] font-bold text-muted-foreground/40 border border-muted-foreground/20 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center">
+            π
+          </div>
+
+          {/* Crown / Medal Badge */}
+          <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 sm:p-1 border border-border/60 shadow-md">
+            {cfg.icon}
+          </div>
         </div>
-      </Card>
+
+        {/* Student Name */}
+        <h3 className="text-[11px] sm:text-xs md:text-sm font-bold text-foreground text-center line-clamp-2 leading-tight w-full min-h-[2.25rem] flex items-center justify-center my-1 break-words">
+          {row.full_name || "بدون اسم"}
+        </h3>
+
+        {/* Points */}
+        <div className="mt-auto flex items-baseline justify-center gap-1 sm:gap-1.5 pt-1">
+          <span className="text-lg sm:text-2xl md:text-3xl font-black text-foreground tabular-nums">{row.total_points}</span>
+          <span className="text-[10px] sm:text-xs font-bold text-muted-foreground">نقطة</span>
+        </div>
+      </div>
     </motion.div>
   );
 }

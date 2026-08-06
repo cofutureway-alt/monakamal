@@ -376,7 +376,7 @@ export default function BookDetails() {
     const b = data as DetailedBook;
     setBook(b);
     setSelectedImage(b.cover_image_url);
-    document.title = `${b.title} — الساعي`;
+    document.title = `${b.title} — منصة الأستاذة منى كامل`;
 
     // Fetch related books from same subject or stage
     let query = (supabase as any)

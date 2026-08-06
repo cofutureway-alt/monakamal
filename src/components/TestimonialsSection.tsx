@@ -56,7 +56,7 @@ export default function TestimonialsSection() {
   return (
     <section
       id="testimonials"
-      className="py-24 relative overflow-hidden bg-secondary/20"
+      className="py-24 px-6 relative overflow-hidden bg-background"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -67,31 +67,29 @@ export default function TestimonialsSection() {
       />
       <EightPointStar
         size={35}
-        className="absolute bottom-12 left-10 text-primary/10 animate-spin-slow pointer-events-none hidden md:block"
+        className="absolute bottom-12 left-10 text-accent/20 animate-spin-slow pointer-events-none hidden md:block"
         style={{ animationDirection: "reverse" }}
       />
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="max-w-6xl mx-auto relative z-10">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-14 space-y-4">
-          <IslamicDivider className="mb-4" />
-
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary shadow-sm">
+        <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 text-accent border border-accent/20 text-xs font-bold shadow-sm">
             <MessageSquareQuote size={14} />
             <span>آراء وتجارب الطلاب</span>
           </div>
 
-          <h2 className="text-3xl md:text-5xl font-extrabold text-foreground tracking-tight">
+          <h2 className="text-3xl md:text-5xl font-bold text-primary tracking-tight">
             آراء وانطباعات طلابنا
           </h2>
 
           <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-            اقرأ بعض من تجارب وانطباعات الطلاب والطالبات اللي بيتعلموا مع المعلم في المنصة
+            اقرأ بعض تجارب وانطباعات الطلاب والطالبات الذين يتعلمون معنا على المنصة
           </p>
         </div>
 
         {/* Carousel Container */}
-        <div className="relative max-w-6xl mx-auto px-4 md:px-12">
+        <div className="relative max-w-6xl mx-auto">
           {/* Navigation Controls (Arrows) */}
           {testimonials.length > 1 && (
             <>
@@ -99,7 +97,7 @@ export default function TestimonialsSection() {
                 variant="outline"
                 size="icon"
                 onClick={handlePrev}
-                className="absolute right-0 md:-right-2 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-background/80 backdrop-blur-md border border-border shadow-lg hover:border-primary hover:text-primary transition-all"
+                className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-background/90 backdrop-blur-md border border-border shadow-xl hover:border-primary hover:bg-primary hover:text-primary-foreground transition-all"
                 title="السابق"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -109,7 +107,7 @@ export default function TestimonialsSection() {
                 variant="outline"
                 size="icon"
                 onClick={handleNext}
-                className="absolute left-0 md:-left-2 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-background/80 backdrop-blur-md border border-border shadow-lg hover:border-primary hover:text-primary transition-all"
+                className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-background/90 backdrop-blur-md border border-border shadow-xl hover:border-primary hover:bg-primary hover:text-primary-foreground transition-all"
                 title="التالي"
               >
                 <ChevronLeft className="w-6 h-6" />
@@ -126,7 +124,7 @@ export default function TestimonialsSection() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -30 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
               >
                 {/* Calculate visible indices for 3-items carousel */}
                 {[0, 1, 2].map((offset) => {
@@ -137,25 +135,25 @@ export default function TestimonialsSection() {
                   return (
                     <Card
                       key={`${item.id}-${offset}`}
-                      className={`group relative rounded-2xl border border-border/80 overflow-hidden bg-card/70 backdrop-blur-xl hover:border-primary/50 hover:shadow-2xl transition-all duration-300 cursor-pointer p-3 flex flex-col justify-between ${
+                      className={`group relative rounded-[2rem] border border-border/80 overflow-hidden bg-card hover:border-primary hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300 cursor-pointer p-4 flex flex-col justify-between ${
                         offset >= 1 ? "hidden md:flex" : ""
                       } ${offset >= 2 ? "hidden lg:flex" : ""}`}
                       onClick={() => setSelectedImage(item.image_url)}
                     >
-                      <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/50">
+                      <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted/40">
                         <img
                           src={item.image_url}
                           alt={item.student_name || `رأي طالب ${idx + 1}`}
-                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                         />
-                        <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-medium text-xs gap-1.5 backdrop-blur-[2px]">
-                          <Eye size={16} />
-                          <span>دوس عشان تكبر الصورة</span>
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-2 backdrop-blur-[2px]">
+                          <Eye size={18} />
+                          <span>اضغط لتكبير الصورة</span>
                         </div>
                       </div>
 
                       {item.student_name && (
-                        <div className="mt-3 text-center text-sm font-bold text-foreground truncate">
+                        <div className="mt-4 text-center text-base font-bold text-foreground truncate">
                           {item.student_name}
                         </div>
                       )}

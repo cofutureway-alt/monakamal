@@ -34,7 +34,7 @@ export const CourseCard = forwardRef<HTMLDivElement, Props>(function CourseCard(
       <Link
         to={`/courses/${course.id}`}
         className={
-          "group block h-full rounded-2xl border border-border bg-card overflow-hidden shadow-md hover:shadow-2xl hover:border-primary/40 transition-all " +
+          "group block h-full rounded-[2rem] border border-border/70 bg-card overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-primary/10 hover:border-primary transition-all duration-300 " +
           (isComingSoon ? "ring-1 ring-amber-500/30" : "")
         }
       >

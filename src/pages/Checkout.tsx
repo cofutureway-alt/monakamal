@@ -98,7 +98,7 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    document.title = "إتمام الشراء — الساعي";
+    document.title = "إتمام الشراء — منصة الأستاذة منى كامل";
   }, []);
 
   const lines = useMemo(
