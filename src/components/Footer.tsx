@@ -81,9 +81,10 @@ const Footer = () => {
     settings.social_links.length > 0
       ? settings.social_links
       : [
-          { platform: "YouTube", url: "https://www.youtube.com/@elsa3i" },
-          { platform: "Facebook", url: "https://www.facebook.com/Elsa3i.shr3i" },
-          { platform: "Telegram", url: "https://t.me/elsa3i" },
+          { platform: "YouTube", url: "https://www.youtube.com" },
+          { platform: "Facebook", url: "https://www.facebook.com" },
+          { platform: "WhatsApp", url: "https://wa.me" },
+          { platform: "Telegram", url: "https://t.me" },
         ];
 
   return (
