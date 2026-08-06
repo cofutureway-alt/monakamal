@@ -36,6 +36,7 @@ import {
   Coins,
   Truck,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { usePlatformSettings } from "@/hooks/use-platform-settings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -61,7 +62,6 @@ const isGroup = (e: NavEntry): e is GroupItem => (e as GroupItem).children !== u
 
 const nav: NavEntry[] = [
   { to: "/admin", label: "الإحصائيات", icon: BarChart3, end: true },
-  { to: "/admin/renewal-payments", label: "سجل سداد التجديد", icon: Coins },
   {
     id: "academics",
     label: "المحتوى التعليمي",
