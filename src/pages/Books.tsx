@@ -112,7 +112,7 @@ export default function Books() {
           .eq("status", "published")
           .order("created_at", { ascending: false }),
         (supabase as any).from("subjects").select("id,name").order("name"),
-        (supabase as any).from("stages").select("id,name").order("name"),
+        (supabase as any).from("stages").select("id,name").order("order_index", { ascending: true }),
       ]);
       setBooks((bs as PublicBook[]) ?? []);
       setSubjects((subs as any) ?? []);

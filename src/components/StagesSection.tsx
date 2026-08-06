@@ -23,8 +23,8 @@ const StagesSection = () => {
   useEffect(() => {
     (supabase as any)
       .from("stages")
-      .select("id, name, description, thumbnail_url")
-      .order("name")
+      .select("id, name, description, thumbnail_url, order_index")
+      .order("order_index", { ascending: true })
       .then(({ data }: any) => setStages((data ?? []) as Stage[]));
   }, []);
 

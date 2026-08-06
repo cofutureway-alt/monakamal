@@ -28,12 +28,14 @@ const AdminStages = () => {
   const [editing, setEditing] = useState<StageRow | null>(null);
   const [deleting, setDeleting] = useState<StageWithCount | null>(null);
   const [deletePending, setDeletePending] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragTargetIndex, setDragTargetIndex] = useState<number | null>(null);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("stages")
-      .select("id, name, description, thumbnail_url, courses(id)")
-      .order("created_at", { ascending: false });
+      .select("id, name, description, thumbnail_url, order_index, courses(id)")
+      .order("order_index", { ascending: true });
 
     if (error) {
       toast.error("تعذّر تحميل المراحل");
@@ -41,11 +43,12 @@ const AdminStages = () => {
       return;
     }
     setStages(
-      (data ?? []).map((s: any) => ({
+      (data ?? []).map((s: any, idx: number) => ({
         id: s.id,
         name: s.name,
         description: s.description,
         thumbnail_url: s.thumbnail_url,
+        order_index: s.order_index ?? idx,
         courses_count: s.courses?.length ?? 0,
       })),
     );
@@ -54,6 +57,62 @@ const AdminStages = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const saveOrder = async (newOrderedStages: StageWithCount[]) => {
+    setStages(newOrderedStages);
+    try {
+      const updates = newOrderedStages.map((s, idx) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        thumbnail_url: s.thumbnail_url,
+        order_index: idx,
+      }));
+
+      const { error } = await (supabase as any)
+        .from("stages")
+        .upsert(updates, { onConflict: "id" });
+
+      if (error) throw error;
+      toast.success("تم حفظ الترتيب الجديد للمراحل بنجاح");
+    } catch (err: any) {
+      console.error("Failed to save order:", err);
+      toast.error("تعذّر حفظ الترتيب الجديد");
+      load();
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    setDragTargetIndex(index);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex || !stages) return;
+
+    const list = [...stages];
+    const [removed] = list.splice(draggedIndex, 1);
+    list.splice(dropIndex, 0, removed);
+
+    setDraggedIndex(null);
+    setDragTargetIndex(null);
+    saveOrder(list);
+  };
+
+  const handleMove = (fromIndex: number, toIndex: number) => {
+    if (!stages || toIndex < 0 || toIndex >= stages.length) return;
+    const list = [...stages];
+    const [removed] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, removed);
+    saveOrder(list);
+  };
 
   const filtered = stages?.filter((s) =>
     s.name.toLowerCase().includes(query.toLowerCase()),
@@ -153,29 +212,33 @@ const AdminStages = () => {
           ))}
         </div>
       ) : filtered && filtered.length > 0 ? (
-        <motion.div
-          layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          <AnimatePresence mode="popLayout">
+        <div>
+          <div className="mb-4 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-semibold flex items-center gap-2">
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span>يمكنك ترتيب المراحل الدراسية بالسحب والإفلات أو باستخدام الأسهم، وسيتم اعتماد هذا الترتيب تلقائيًا في الصفحة الرئيسية وجميع الفلاتر.</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((stage, i) => (
-              <motion.div
+              <StageCard
                 key={stage.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: i * 0.05, type: "spring", damping: 22 }}
-              >
-                <StageCard
-                  stage={stage}
-                  onEdit={() => openEdit(stage)}
-                  onDelete={() => setDeleting(stage)}
-                />
-              </motion.div>
+                stage={stage}
+                index={i}
+                isFirst={i === 0}
+                isLast={i === filtered.length - 1}
+                onEdit={() => openEdit(stage)}
+                onDelete={() => setDeleting(stage)}
+                onMoveUp={() => handleMove(i, i - 1)}
+                onMoveDown={() => handleMove(i, i + 1)}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                isDragging={draggedIndex === i}
+                isDragTarget={dragTargetIndex === i}
+              />
             ))}
-          </AnimatePresence>
-        </motion.div>
+          </div>
+        </div>
       ) : stages.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}

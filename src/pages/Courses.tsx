@@ -51,7 +51,7 @@ const Courses = () => {
     supabase
       .from("stages")
       .select("id, name")
-      .order("name")
+      .order("order_index", { ascending: true })
       .then(({ data }) => setStages((data as Named[]) ?? []));
     (supabase as any)
       .from("subjects")

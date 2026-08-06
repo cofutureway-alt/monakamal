@@ -1,27 +1,62 @@
 import { useSignedThumbnail } from "@/hooks/use-signed-thumbnail";
-import { Layers, Pencil, Trash2, ImageOff } from "lucide-react";
+import { Layers, Pencil, Trash2, ImageOff, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { StageRow } from "./StageFormModal";
 
 interface Props {
-  stage: StageRow & { courses_count: number };
+  stage: StageRow & { courses_count: number; order_index?: number };
+  index: number;
+  isFirst: boolean;
+  isLast: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onDragStart: (e: React.DragEvent, index: number) => void;
+  onDragOver: (e: React.DragEvent, index: number) => void;
+  onDrop: (e: React.DragEvent, index: number) => void;
+  isDragging?: boolean;
+  isDragTarget?: boolean;
 }
 
-const StageCard = ({ stage, onEdit, onDelete }: Props) => {
+const StageCard = ({
+  stage,
+  index,
+  isFirst,
+  isLast,
+  onEdit,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  isDragging,
+  isDragTarget,
+}: Props) => {
   const signed = useSignedThumbnail(stage.thumbnail_url);
 
   return (
-    <motion.div
-      layout
-      whileHover={{ y: -4 }}
-      transition={{ type: "spring", stiffness: 300, damping: 24 }}
-      className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40 transition-all"
+    <div
+      draggable
+      onDragStart={(e) => onDragStart(e, index)}
+      onDragOver={(e) => onDragOver(e, index)}
+      onDrop={(e) => onDrop(e, index)}
+      className={`group relative overflow-hidden rounded-2xl border bg-card transition-all duration-200 cursor-grab active:cursor-grabbing select-none ${
+        isDragging ? "opacity-40 scale-95 border-amber-500 border-dashed" : "opacity-100"
+      } ${
+        isDragTarget ? "border-amber-500 ring-2 ring-amber-500/20 scale-[1.02]" : "border-border/60 hover:shadow-xl hover:border-primary/40"
+      }`}
     >
       <div className="relative aspect-video bg-gradient-to-br from-primary/10 via-accent/50 to-primary/5 overflow-hidden">
+        {/* Drag Handle Top-Left */}
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-background/90 backdrop-blur-sm text-foreground px-2 py-1 rounded-lg border border-border/50 shadow-sm opacity-90 group-hover:opacity-100 transition-opacity">
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
+          <span className="text-[10px] font-bold text-muted-foreground">ترتيب #{index + 1}</span>
+        </div>
+
         {signed ? (
           <img
             src={signed}
@@ -37,7 +72,7 @@ const StageCard = ({ stage, onEdit, onDelete }: Props) => {
             )}
           </div>
         )}
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 z-10">
           <Badge className="bg-background/90 text-foreground hover:bg-background border-0 shadow gap-1.5">
             <Layers className="w-3 h-3" />
             {stage.courses_count} دورات
@@ -54,6 +89,30 @@ const StageCard = ({ stage, onEdit, onDelete }: Props) => {
         </p>
 
         <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/60">
+          {/* Move Up / Move Down buttons */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              disabled={isFirst}
+              onClick={onMoveUp}
+              title="تحريك لأعلى"
+            >
+              <ArrowUp className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              disabled={isLast}
+              onClick={onMoveDown}
+              title="تحريك لأسفل"
+            >
+              <ArrowDown className="w-4 h-4" />
+            </Button>
+          </div>
+
           <Button
             variant="outline"
             size="sm"
@@ -63,6 +122,7 @@ const StageCard = ({ stage, onEdit, onDelete }: Props) => {
             <Pencil className="w-4 h-4 ml-2" />
             تعديل
           </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -73,7 +133,7 @@ const StageCard = ({ stage, onEdit, onDelete }: Props) => {
           </Button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
