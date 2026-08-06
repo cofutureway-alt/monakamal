@@ -249,7 +249,7 @@ export default function PublicInstructorProfile() {
                       </p>
                     ) : (
                       <p className="text-sm text-muted-foreground/70 italic">
-                        محاضر لدى منصة الساعي التعليمية.
+                        محاضر لدى منصة منى كامل التعليمية.
                       </p>
                     )}
 

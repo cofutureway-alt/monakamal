@@ -96,7 +96,7 @@ export async function generateOrderSlipPdf(order: BookOrderFull) {
   rtl(doc, "بيان طلب كتب", W - 12, 20, "right");
   doc.setFontSize(11);
   doc.setFont(font, "normal");
-  rtl(doc, "منصة الساعي", W - 12, 28, "right");
+  rtl(doc, "منصة منى كامل", W - 12, 28, "right");
 
   // Meta strip
   doc.setTextColor(15, 23, 42);
@@ -276,7 +276,7 @@ export async function generateOrderSlipPdf(order: BookOrderFull) {
   doc.setFontSize(8);
   rtl(
     doc,
-    "بيان طلب مُولّد إلكترونيًا من منصة الساعي.",
+    "بيان طلب مُولّد إلكترونيًا من منصة منى كامل.",
     W / 2,
     H - 12,
     "center",

@@ -119,7 +119,7 @@ export async function generateInvoicePdf(data: InvoiceData) {
   doc.setFontSize(18);
   rtl(doc, "فاتورة", W - 12, 17, "right");
   doc.setFontSize(10);
-  rtl(doc, data.platformName ?? "منصة الساعي", W - 12, 24, "right");
+  rtl(doc, data.platformName ?? "منصة منى كامل", W - 12, 24, "right");
 
   // Meta strip
   doc.setTextColor(15, 23, 42);

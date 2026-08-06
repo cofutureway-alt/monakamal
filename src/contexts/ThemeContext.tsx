@@ -10,7 +10,7 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "saae-theme";
+const STORAGE_KEY = "mona-kamel-theme";
 
 const getInitial = (): Theme => {
   if (typeof window === "undefined") return "light";
