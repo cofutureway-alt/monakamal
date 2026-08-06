@@ -7,8 +7,6 @@ import NotificationBell from "@/components/notifications/NotificationBell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
-import { useTheme } from "@/contexts/ThemeContext";
-import { usePlatformSettings } from "@/hooks/use-platform-settings";
 
 const nav = [
   { to: "/parent", label: "أبنائي", icon: Users, end: true },
@@ -17,25 +15,19 @@ const nav = [
   { to: "/parent/account", label: "حسابي", icon: UserCircle2 },
 ];
 
-const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
-  const { theme } = useTheme();
-  const { settings } = usePlatformSettings();
-  const logoUrl =
-    theme === "dark"
-      ? (settings.logo_dark_url || "/logo-dark.png")
-      : (settings.logo_light_url || "/logo-light.png");
-
-  return (
-    <div className="flex h-full flex-col">
-      <div className="px-6 py-6 border-b border-border/60">
-        <NavLink to="/" className="flex items-center gap-3">
-          <img src={logoUrl} alt="منصة الأستاذة منى كامل" className="h-10 w-auto object-contain" />
-          <div>
-            <div className="font-bold leading-tight">لوحة ولي الأمر</div>
-            <div className="text-xs text-muted-foreground">متابعة أبنائك</div>
-          </div>
-        </NavLink>
-      </div>
+const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => (
+  <div className="flex h-full flex-col">
+    <div className="px-6 py-6 border-b border-border/60">
+      <NavLink to="/" className="flex items-center gap-2">
+        <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
+          س
+        </div>
+        <div>
+          <div className="font-bold leading-tight">لوحة ولي الأمر</div>
+          <div className="text-xs text-muted-foreground">متابعة أبنائك</div>
+        </div>
+      </NavLink>
+    </div>
     <nav className="flex-1 space-y-1 p-4">
       {nav.map((item) => (
         <NavLink
@@ -44,8 +36,7 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
           end={item.end}
           onClick={onNavigate}
           className={({ isActive }) =>
-            `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-              isActive ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-accent"
+            `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${isActive ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-accent"
             }`
           }
         >
@@ -60,8 +51,8 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
         <Home className="w-5 h-5" /> العودة للموقع
       </NavLink>
     </div>
-  );
-};
+  </div>
+);
 
 const ParentLayout = () => {
   const { user, profile, signOut, loading } = useAuth();

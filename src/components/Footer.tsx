@@ -81,11 +81,11 @@ const Footer = () => {
     settings.social_links.length > 0
       ? settings.social_links
       : [
-          { platform: "YouTube", url: "https://www.youtube.com" },
-          { platform: "Facebook", url: "https://www.facebook.com" },
-          { platform: "WhatsApp", url: "https://wa.me" },
-          { platform: "Telegram", url: "https://t.me" },
-        ];
+        { platform: "YouTube", url: "https://www.youtube.com" },
+        { platform: "Facebook", url: "https://www.facebook.com" },
+        { platform: "WhatsApp", url: "https://wa.me" },
+        { platform: "Telegram", url: "https://t.me" },
+      ];
 
   return (
     <footer className="py-12 px-6 border-t border-border/50 text-center bg-background relative overflow-hidden">

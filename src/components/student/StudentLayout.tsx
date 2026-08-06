@@ -15,8 +15,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ThemeToggle from "@/components/ThemeToggle";
 import WalletWidget from "@/components/WalletWidget";
-import { useTheme } from "@/contexts/ThemeContext";
-import { usePlatformSettings } from "@/hooks/use-platform-settings";
 
 const nav = [
   { to: "/dashboard", label: "دوراتي", icon: BookOpen, end: true },
@@ -48,10 +46,9 @@ const NavItem = ({
     end={end}
     onClick={onNavigate}
     className={({ isActive }) =>
-      `group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
-        isActive
-          ? "text-primary-foreground"
-          : "text-foreground/70 hover:bg-accent hover:text-foreground"
+      `group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${isActive
+        ? "text-primary-foreground"
+        : "text-foreground/70 hover:bg-accent hover:text-foreground"
       }`
     }
   >
@@ -71,25 +68,19 @@ const NavItem = ({
   </NavLink>
 );
 
-const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
-  const { theme } = useTheme();
-  const { settings } = usePlatformSettings();
-  const logoUrl =
-    theme === "dark"
-      ? (settings.logo_dark_url || "/logo-dark.png")
-      : (settings.logo_light_url || "/logo-light.png");
-
-  return (
-    <div className="flex h-full flex-col">
-      <div className="px-6 py-6 border-b border-border/60">
-        <NavLink to="/" className="flex items-center gap-3">
-          <img src={logoUrl} alt="منصة الأستاذة منى كامل" className="h-10 w-auto object-contain" />
-          <div>
-            <div className="font-bold text-foreground leading-tight">لوحة الطالب</div>
-            <div className="text-xs text-muted-foreground">رحلتك التعليمية</div>
-          </div>
-        </NavLink>
-      </div>
+const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => (
+  <div className="flex h-full flex-col">
+    <div className="px-6 py-6 border-b border-border/60">
+      <NavLink to="/" className="flex items-center gap-2">
+        <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
+          س
+        </div>
+        <div>
+          <div className="font-bold text-foreground leading-tight">لوحة الطالب</div>
+          <div className="text-xs text-muted-foreground">رحلتك التعليمية</div>
+        </div>
+      </NavLink>
+    </div>
     <nav className="flex-1 space-y-1 p-4">
       {nav.map((item) => (
         <NavItem key={item.to} {...item} onNavigate={onNavigate} />
@@ -105,8 +96,8 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
         <span>العودة للموقع</span>
       </NavLink>
     </div>
-  );
-};
+  </div>
+);
 
 const StudentLayout = () => {
   const { user, profile, signOut } = useAuth();
@@ -199,38 +190,38 @@ const StudentLayout = () => {
           <div className="flex items-center gap-2">
             <WalletWidget to="/dashboard/wallet" />
             <ThemeToggle />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-3 rounded-full p-1 pl-3 hover:bg-accent transition-colors">
-                <span className="hidden md:inline text-sm font-medium">
-                  {profile?.full_name || user?.email}
-                </span>
-                <Avatar className="w-9 h-9 border border-border">
-                  <AvatarImage src={profile?.avatar_url ?? undefined} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="font-semibold">{profile?.full_name || "طالب"}</div>
-                <div className="text-xs text-muted-foreground font-normal truncate">
-                  {user?.email}
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/dashboard/account")}>
-                <UserCircle2 className="w-4 h-4 ml-2" />
-                حسابي
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
-                <LogOut className="w-4 h-4 ml-2" />
-                تسجيل الخروج
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-3 rounded-full p-1 pl-3 hover:bg-accent transition-colors">
+                  <span className="hidden md:inline text-sm font-medium">
+                    {profile?.full_name || user?.email}
+                  </span>
+                  <Avatar className="w-9 h-9 border border-border">
+                    <AvatarImage src={profile?.avatar_url ?? undefined} />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="font-semibold">{profile?.full_name || "طالب"}</div>
+                  <div className="text-xs text-muted-foreground font-normal truncate">
+                    {user?.email}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/dashboard/account")}>
+                  <UserCircle2 className="w-4 h-4 ml-2" />
+                  حسابي
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                  <LogOut className="w-4 h-4 ml-2" />
+                  تسجيل الخروج
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 

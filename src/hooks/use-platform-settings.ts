@@ -22,7 +22,7 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   logo_dark_url: null,
   social_links: [],
   hero_image_url: null,
-  hero_headline: "الأستاذة منى كامل محمود\nمعلم أول رياضيات",
+  hero_headline: "الأستاذة منى كامل\nمعلم أول رياضيات",
   hero_subtext:
     "نصنع من الرياضيات متعة، ونبني مستقبلاً مشرقاً لأبنائنا في جميع المراحل التعليمية الإعدادية والثانوية.",
   hero_cta_label: "استعراض الصفوف والدورات",
