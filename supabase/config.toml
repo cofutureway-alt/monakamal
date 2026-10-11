@@ -1,7 +1,19 @@
-project_id = "mnlmwekclurudjuhcgzw"
+project_id = "lhzawomzzuhfalvdgjcd"
 
 [functions.admin-create-student]
 verify_jwt = true
 
 [functions.admin-delete-student]
 verify_jwt = true
+
+[functions.fawaterak-webhook]
+verify_jwt = false
+
+[functions.kashier-webhook]
+verify_jwt = false
+
+[functions.paymob-webhook]
+verify_jwt = false
+
+[functions.rasvio-webhook]
+verify_jwt = false
