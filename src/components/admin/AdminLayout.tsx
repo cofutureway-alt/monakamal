@@ -83,7 +83,6 @@ const nav: NavEntry[] = [
     children: [
       { to: "/admin/users",               label: "جميع المستخدمين",    icon: UserCog },
       { to: "/admin/students",            label: "إدارة الطلاب",        icon: Users },
-      { to: "/admin/testimonials",        label: "آراء الطلاب",         icon: MessageSquare },
       { to: "/admin/parents",             label: "أولياء الأمور",       icon: Users },
       { to: "/admin/parent-link-requests",label: "طلبات أولياء الأمور", icon: Users },
       { to: "/admin/quiz-attempts",       label: "محاولات الاختبارات",  icon: ClipboardCheck },

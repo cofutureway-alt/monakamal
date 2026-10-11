@@ -1,5 +1,13 @@
 project_id = "lhzawomzzuhfalvdgjcd"
 
+# Signup is phone-based with synthetic emails; confirmation emails are impossible.
+[auth]
+site_url = "https://www.miss-mona-kamel.com"
+additional_redirect_urls = ["http://localhost:8080"]
+
+[auth.email]
+enable_confirmations = false
+
 [functions.admin-create-student]
 verify_jwt = true
 

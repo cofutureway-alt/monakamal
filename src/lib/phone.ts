@@ -15,12 +15,15 @@ export function isValidEgPhone(raw: string): boolean {
   return /^201[0125]\d{8}$/.test(n);
 }
 
+// ponytail: Supabase GoTrue rejects the reserved ".invalid" TLD on new projects
+// (email_address_invalid). If this ever breaks again, self-host GoTrue or use
+// an SMTP provider with phone-based accounts.
 export function syntheticAuthEmail(phone: string): string {
-  return `${normalizeEgPhone(phone)}@phone.noemail.invalid`;
+  return `${normalizeEgPhone(phone)}@phone.fakarli.com`;
 }
 
 export function isSyntheticEmail(email: string | null | undefined): boolean {
-  return !!email && email.endsWith("@phone.noemail.invalid");
+  return !!email && email.endsWith("@phone.fakarli.com");
 }
 
 // Returns true when the identifier looks like an Egyptian phone number

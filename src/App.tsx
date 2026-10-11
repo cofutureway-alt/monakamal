@@ -99,7 +99,7 @@ import AdminBookOrderDetail from "./pages/admin/AdminBookOrderDetail";
 import MyBookOrders from "./pages/student/MyBookOrders";
 import Branches from "./pages/Branches";
 import AdminBranches from "./pages/admin/AdminBranches";
-import AdminTestimonials from "./pages/admin/AdminTestimonials";
+import AdminBooks from "./pages/admin/AdminBooks";
 
 
 const queryClient = new QueryClient();
@@ -225,7 +225,6 @@ const App = () => (
               <Route path="books/:id" element={<AdminBookEditor />} />
               <Route path="shipping-zones" element={<AdminShippingZones />} />
               <Route path="branches" element={<AdminBranches />} />
-              <Route path="testimonials" element={<AdminTestimonials />} />
               <Route path="book-orders" element={<AdminBookOrders />} />
               <Route path="book-orders/:id" element={<AdminBookOrderDetail />} />
               <Route path="settings" element={<AdminSettings />} />

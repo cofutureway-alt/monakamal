@@ -20,6 +20,7 @@ import WalletWidget from "@/components/WalletWidget";
 import CartWidget from "@/components/CartWidget";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { usePlatformSettings } from "@/hooks/use-platform-settings";
+import { isSyntheticEmail } from "@/lib/phone";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
@@ -107,7 +108,7 @@ const Navbar = () => {
             <DropdownMenuLabel className="text-xs font-normal">
               <div className="font-bold">{profile?.full_name || "مستخدم"}</div>
               <div className="text-muted-foreground truncate" dir="ltr">
-                {profile?.phone_number || profile?.email || (user.email && !user.email.endsWith("@phone.noemail.invalid") ? user.email : "")}
+                {profile?.phone_number || profile?.email || (user.email && !isSyntheticEmail(user.email) ? user.email : "")}
               </div>
             </DropdownMenuLabel>
 
@@ -266,7 +267,7 @@ const Navbar = () => {
                           </span>
                         </div>
                         <div className="text-xs text-muted-foreground truncate" dir="ltr">
-                          {profile?.phone_number || profile?.email || (user.email && !user.email.endsWith("@phone.noemail.invalid") ? user.email : "")}
+                          {profile?.phone_number || profile?.email || (user.email && !isSyntheticEmail(user.email) ? user.email : "")}
                         </div>
                       </div>
                     </Link>

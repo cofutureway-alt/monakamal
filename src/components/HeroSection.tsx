@@ -5,8 +5,9 @@ import { ArrowLeft, GraduationCap } from "lucide-react";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { EightPointStar } from "@/components/IslamicPatterns";
-import instructorHero from "@/assets/instructor-hero.jpg.asset.json";
 import { usePlatformSettings, DEFAULT_PLATFORM_SETTINGS } from "@/hooks/use-platform-settings";
+
+const FALLBACK_HERO_IMAGE = "/images/hero-image.jpg";
 
 const HeroSection = () => {
   const sectionRef = useRef<HTMLElement>(null);
@@ -14,7 +15,7 @@ const HeroSection = () => {
   const { settings } = usePlatformSettings();
 
   // ── Resolve content — fall back to hardcoded defaults if DB value is absent ──
-  const heroImageUrl = settings.hero_image_url ?? instructorHero.url;
+  const heroImageUrl = settings.hero_image_url ?? FALLBACK_HERO_IMAGE;
   const rawHeadline = settings.hero_headline ?? DEFAULT_PLATFORM_SETTINGS.hero_headline ?? "";
   const heroSubtext = settings.hero_subtext ?? DEFAULT_PLATFORM_SETTINGS.hero_subtext ?? "";
   const ctaLabel = settings.hero_cta_label ?? DEFAULT_PLATFORM_SETTINGS.hero_cta_label ?? "";

@@ -28,7 +28,8 @@ import {
   usePlatformSettings,
   type PlatformSettings,
 } from "@/hooks/use-platform-settings";
-import instructorHero from "@/assets/instructor-hero.jpg.asset.json";
+
+const FALLBACK_HERO_IMAGE = "/images/hero-image.jpg";
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ function MiniHeroPreview({
         <div className="flex justify-center">
           <div className="w-20 h-20 rounded-xl overflow-hidden border border-border bg-secondary">
             <img
-              src={imageUrl ?? instructorHero.url}
+              src={imageUrl ?? FALLBACK_HERO_IMAGE}
               alt="preview"
               className="w-full h-full object-contain"
             />
@@ -328,7 +329,7 @@ const AdminHomepageSettings = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    src={instructorHero.url}
+                    src={FALLBACK_HERO_IMAGE}
                     alt="hero default"
                     className="h-full w-auto object-contain opacity-50"
                   />
