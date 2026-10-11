@@ -25,3 +25,8 @@ dist-ssr
 
 supabase/.temp
 
+# Local env files - values live in Vercel project settings
+.env
+.env.local
+.env.*.local
+
