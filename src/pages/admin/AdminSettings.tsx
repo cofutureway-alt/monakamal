@@ -10,9 +10,11 @@ import {
   Home,
   MessageSquare,
   FileText,
+  ShieldCheck,
 } from "lucide-react";
 
 const CARDS = [
+  { to: "/admin/settings/mcp", icon: ShieldCheck, title: "إعدادات MCP", desc: "إنشاء مفاتيح وربط أدوات الذكاء الاصطناعي مع صلاحيات دقيقة وسجل عمليات." },
   {
     to: "/admin/settings/video-player",
     icon: PlaySquare,

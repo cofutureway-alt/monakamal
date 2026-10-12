@@ -38,6 +38,7 @@ import CourseContentPage, {
 import MyCourses from "./pages/student/MyCourses";
 import StudentStatistics from "./pages/student/StudentStatistics";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminMcpSettings from "./pages/admin/AdminMcpSettings";
 import AdminVideoPlayerSettings from "./pages/admin/AdminVideoPlayerSettings";
 import QuizTake from "./pages/QuizTake";
 import AdminQuizAttempts from "./pages/admin/AdminQuizAttempts";
@@ -228,6 +229,7 @@ const App = () => (
               <Route path="book-orders" element={<AdminBookOrders />} />
               <Route path="book-orders/:id" element={<AdminBookOrderDetail />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="settings/mcp" element={<AdminMcpSettings />} />
               <Route path="settings/video-player" element={<AdminVideoPlayerSettings />} />
               <Route path="settings/registration-form" element={<AdminRegistrationForm />} />
               <Route path="settings/student-qr" element={<AdminQrSettings />} />
