@@ -18,6 +18,8 @@ const cors = {
 const tools = [
   { name: "ping", description: "Health check. No side effects.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "system_info", description: "Returns non-sensitive gateway metadata.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "list_users", description: "List users through the existing admin RPC.", inputSchema: { type: "object", properties: { search: { type: "string" }, limit: { type: "number", maximum: 100 }, offset: { type: "number", minimum: 0 } }, additionalProperties: false } },
+  { name: "get_student", description: "Get one student through the existing admin RPC.", inputSchema: { type: "object", required: ["user_id"], properties: { user_id: { type: "string", format: "uuid" } }, additionalProperties: false } },
 ];
 
 function json(body: unknown, status = 200, headers: HeadersInit = {}) {
@@ -40,8 +42,28 @@ async function authenticate(req: Request): Promise<KeyRecord | null> {
   });
   return { apiKeyId: data[0].api_key_id, permissions };
 }
-const allows = (auth: KeyRecord, tool: string) => auth.permissions.includes(`tools:${tool}`) || auth.permissions.includes("read:settings");
-function handle(rpc: Rpc, auth: KeyRecord) {
+const TOOL_SCOPE: Record<string, string> = { ping: "read:settings", system_info: "read:settings", list_users: "read:users", get_student: "read:users" };
+const allows = (auth: KeyRecord, tool: string) => auth.permissions.includes(`tools:${tool}`) || auth.permissions.includes(TOOL_SCOPE[tool] ?? "");
+async function callTool(name: string, args: Record<string, unknown>, auth: KeyRecord) {
+  if (name === "ping") return "pong";
+  if (name === "system_info") return { service: "al-saae-mcp", protocolVersion: VERSION };
+  if (name === "list_users") {
+    const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 100);
+    const offset = Math.max(Number(args.offset ?? 0), 0);
+    const { data, error } = await admin.rpc("admin_list_all_users", { _search: String(args.search ?? ""), _limit: limit, _offset: offset });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  if (name === "get_student") {
+    const id = String(args.user_id ?? "");
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("invalid_user_id");
+    const { data, error } = await admin.rpc("admin_get_student", { _uid: id });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  throw new Error("Unknown tool");
+}
+async function handle(rpc: Rpc, auth: KeyRecord) {
   if (rpc.jsonrpc !== "2.0" || !rpc.method) return error(rpc.id, -32600, "Invalid Request");
   if (rpc.method === "initialize") return { jsonrpc: "2.0", id: rpc.id ?? null, result: { protocolVersion: VERSION, capabilities: { tools: {} }, serverInfo: { name: "al-saae-mcp", version: "1.0.0" } } };
   if (rpc.method === "notifications/initialized") return null;
@@ -50,8 +72,13 @@ function handle(rpc: Rpc, auth: KeyRecord) {
     const name = (rpc.params?.name as string) ?? "";
     if (!tools.some(t => t.name === name)) return error(rpc.id, -32602, "Unknown tool");
     if (!allows(auth, name)) return error(rpc.id, -32003, "Permission denied");
-    const text = name === "ping" ? "pong" : JSON.stringify({ service: "al-saae-mcp", protocolVersion: VERSION });
-    return { jsonrpc: "2.0", id: rpc.id ?? null, result: { content: [{ type: "text", text }], isError: false } };
+    try {
+      const value = await callTool(name, (rpc.params?.arguments as Record<string, unknown>) ?? {}, auth);
+      await admin.rpc("mcp_write_audit", { _action: `tool.${name}`, _resource: name, _metadata: { ok: true }, _api_key_id: auth.apiKeyId });
+      return { jsonrpc: "2.0", id: rpc.id ?? null, result: { content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value) }], isError: false } };
+    } catch (e) {
+      return { jsonrpc: "2.0", id: rpc.id ?? null, result: { content: [{ type: "text", text: String(e instanceof Error ? e.message : e) }], isError: true } };
+    }
   }
   return error(rpc.id, -32601, "Method not found");
 }
@@ -66,7 +93,7 @@ Deno.serve(async (req) => {
     const length = Number(req.headers.get("content-length") ?? 0);
     if (length > 256_000) return json({ error: "payload_too_large" }, 413);
     const body = await req.json();
-    const result = Array.isArray(body) ? body.map((r: Rpc) => handle(r, auth)).filter(Boolean) : handle(body, auth);
+    const result = Array.isArray(body) ? await Promise.all(body.map((r: Rpc) => handle(r, auth))).then((items) => items.filter(Boolean)) : await handle(body, auth);
     return json(result);
   } catch { return json(error(null, -32700, "Parse error"), 400); }
 });
