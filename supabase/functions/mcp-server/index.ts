@@ -42,7 +42,7 @@ async function authenticate(req: Request): Promise<KeyRecord | null> {
   });
   return { apiKeyId: data[0].api_key_id, permissions };
 }
-const TOOL_SCOPE: Record<string, string> = { ping: "read:settings", system_info: "read:settings", list_users: "read:users", get_student: "read:users" };
+const TOOL_SCOPE: Record<string, string> = { ping: "read:settings", system_info: "read:settings", list_users: "read:users", get_student: "read:users", adjust_wallet: "update:wallets" };
 const allows = (auth: KeyRecord, tool: string) => auth.permissions.includes(`tools:${tool}`) || auth.permissions.includes(TOOL_SCOPE[tool] ?? "");
 async function callTool(name: string, args: Record<string, unknown>, auth: KeyRecord) {
   if (name === "ping") return "pong";
@@ -85,7 +85,7 @@ async function handle(rpc: Rpc, auth: KeyRecord) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
-  if (req.method === "GET") return json({ error: "Use POST for Streamable HTTP JSON-RPC" }, 405);
+  if (req.method === "GET") return json({ resource: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mcp-server`, authorization_servers: [], bearer_methods_supported: ["header"], scopes_supported: ["read:users", "read:settings", "update:wallets"] });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const auth = await authenticate(req);
   if (!auth) return json({ error: "unauthorized" }, 401, { "WWW-Authenticate": "Bearer" });
