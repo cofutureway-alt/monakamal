@@ -29,7 +29,12 @@ function error(id: Rpc["id"], code: number, message: string) {
   return { jsonrpc: "2.0", id: id ?? null, error: { code, message } };
 }
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+const attempts = new Map<string, { count: number; reset: number }>();
 async function authenticate(req: Request): Promise<KeyRecord | null> {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const now = Date.now(); const current = attempts.get(ip);
+  if (current && current.reset > now && current.count >= 60) return null;
+  if (!current || current.reset <= now) attempts.set(ip, { count: 1, reset: now + 60_000 }); else current.count++;
   const supplied = req.headers.get("x-api-key") ?? (req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1] ?? "");
   if (!supplied || supplied.length < 32) return null;
   const { data, error } = await admin.rpc("mcp_verify_api_key", { _key: supplied });
@@ -50,7 +55,10 @@ async function callTool(name: string, args: Record<string, unknown>, auth: KeyRe
   if (name === "list_users") {
     const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 100);
     const offset = Math.max(Number(args.offset ?? 0), 0);
-    const { data, error } = await admin.rpc("admin_list_all_users", { _search: String(args.search ?? ""), _limit: limit, _offset: offset });
+    let query = admin.from("profiles").select("id,full_name,phone_number,real_email,role,stage_id,created_at").range(offset, offset + limit - 1).order("created_at", { ascending: false });
+    const search = String(args.search ?? "").trim().slice(0, 80).replace(/[(),%]/g, "");
+    if (search) query = query.or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%,real_email.ilike.%${search}%`);
+    const { data, error } = await query;
     if (error) throw new Error(error.message);
     return data;
   }
