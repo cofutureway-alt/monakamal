@@ -101,6 +101,7 @@ import MyBookOrders from "./pages/student/MyBookOrders";
 import Branches from "./pages/Branches";
 import AdminBranches from "./pages/admin/AdminBranches";
 import AdminBooks from "./pages/admin/AdminBooks";
+import McpAuthorize from "./pages/McpAuthorize";
 
 
 const queryClient = new QueryClient();
@@ -132,6 +133,7 @@ const App = () => (
             <Route path="/order-confirmation/:id" element={<RequireAuth><OrderConfirmation /></RequireAuth>} />
             <Route path="/s/:qrToken" element={<PublicStudentSnapshot />} />
             <Route path="/instructors/:userId" element={<PublicInstructorProfile />} />
+            <Route path="/mcp/authorize" element={<McpAuthorize />} />
             <Route path="/redeem" element={<RedeemPage />} />
             <Route path="/redeem/:code" element={<PublicRedeemCode />} />
             <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />

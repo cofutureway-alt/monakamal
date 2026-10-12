@@ -39,15 +39,29 @@ async function authenticate(req: Request): Promise<KeyRecord | null> {
   const { data: setting } = await admin.from("mcp_settings").select("value").eq("key", "enabled").maybeSingle();
   if (setting?.value && (setting.value as { enabled?: boolean }).enabled === false) return null;
   if (!supplied || supplied.length < 32) return null;
-  const { data, error } = await admin.rpc("mcp_verify_api_key", { _key: supplied });
-  if (error || !data?.[0]) return null;
-  await admin.rpc("mcp_touch_api_key", { _api_key_id: data[0].api_key_id });
-  const permissions = Object.entries(data[0].permissions ?? {}).flatMap(([resource, value]) => {
-    if (Array.isArray(value)) return value.map((a) => `${a}:${resource}`);
-    if (value && typeof value === "object") return Object.entries(value as Record<string, unknown>).filter(([, enabled]) => enabled === true).map(([action]) => `${action}:${resource}`);
-    return [];
-  });
-  return { apiKeyId: data[0].api_key_id, permissions };
+  if (supplied.startsWith("mcp_")) {
+    const { data, error } = await admin.rpc("mcp_verify_api_key", { _key: supplied });
+    if (error || !data?.[0]) return null;
+    await admin.rpc("mcp_touch_api_key", { _api_key_id: data[0].api_key_id });
+    const permissions = Object.entries(data[0].permissions ?? {}).flatMap(([resource, value]) => {
+      if (Array.isArray(value)) return value.map((a) => `${a}:${resource}`);
+      if (value && typeof value === "object") return Object.entries(value as Record<string, unknown>).filter(([, enabled]) => enabled === true).map(([action]) => `${action}:${resource}`);
+      return [];
+    });
+    return { apiKeyId: data[0].api_key_id, permissions };
+  }
+  // OAuth access token (issued by mcp-oauth): look up by SHA-256 hash.
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(supplied));
+  const tokenHash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const { data: oauthToken } = await admin
+    .from("mcp_oauth_tokens")
+    .select("scope")
+    .eq("token_hash", tokenHash)
+    .is("revoked_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+  if (!oauthToken) return null;
+  return { permissions: oauthToken.scope.split(",").map((s) => s.trim()).filter(Boolean) };
 }
 const TOOL_SCOPE: Record<string, string> = { ping: "read:settings", system_info: "read:settings", list_users: "read:users", get_student: "read:users", adjust_wallet: "update:wallets" };
 const allows = (auth: KeyRecord, tool: string) => auth.permissions.includes(`tools:${tool}`) || auth.permissions.includes(TOOL_SCOPE[tool] ?? "");
