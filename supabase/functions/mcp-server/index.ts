@@ -96,7 +96,12 @@ async function handle(rpc: Rpc, auth: KeyRecord) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
-  if (req.method === "GET") return json({ resource: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mcp-server`, authorization_servers: [], bearer_methods_supported: ["header"], scopes_supported: ["read:users", "read:settings", "update:wallets"] });
+  if (req.method === "GET") {
+    const base = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mcp-server`;
+    const url = new URL(req.url);
+    if (url.pathname.endsWith("/.well-known/oauth-authorization-server")) return json({ error: "oauth_not_enabled", message: "OAuth authorization endpoints are not enabled yet." }, 404);
+    return json({ resource: base, authorization_servers: [], bearer_methods_supported: ["header"], scopes_supported: ["read:users", "read:settings"] });
+  }
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const auth = await authenticate(req);
   if (!auth) return json({ error: "unauthorized" }, 401, { "WWW-Authenticate": "Bearer" });
