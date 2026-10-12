@@ -358,9 +358,38 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (req.method === "GET") {
     const base = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mcp-server`;
+    const oauthBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mcp-oauth`;
     const url = new URL(req.url);
-    if (url.pathname.endsWith("/.well-known/oauth-authorization-server")) return json({ error: "oauth_not_enabled", message: "OAuth authorization endpoints are not enabled yet." }, 404);
-    return json({ resource: base, authorization_servers: [], bearer_methods_supported: ["header"], scopes_supported: ["read:users", "read:settings"] });
+    // Site URL for the human-facing authorize page — configurable from admin MCP settings.
+    const { data: siteSetting } = await admin.from("mcp_settings").select("value").eq("key", "site_url").maybeSingle();
+    const siteUrl = String((siteSetting?.value as { site_url?: string } | null)?.site_url ?? "https://www.miss-mona-kamel.com").replace(/\/$/, "");
+    if (url.pathname.endsWith("/.well-known/oauth-authorization-server")) {
+      return json({
+        issuer: base,
+        authorization_endpoint: `${siteUrl}/mcp/authorize`,
+        token_endpoint: `${oauthBase}/token`,
+        revocation_endpoint: `${oauthBase}/revoke`,
+        response_types_supported: ["code"],
+        grant_types_supported: ["authorization_code"],
+        code_challenge_methods_supported: ["S256"],
+        token_endpoint_auth_methods_supported: ["none"],
+        scopes_supported: ["read:users", "read:courses", "read:bundles", "read:lessons", "read:quizzes", "read:orders", "read:settings"],
+      });
+    }
+    if (url.pathname.endsWith("/.well-known/oauth-protected-resource") || url.pathname.replace(/\/$/, "") === new URL(base).pathname) {
+      return json({
+        resource: base,
+        authorization_servers: [base],
+        bearer_methods_supported: ["header"],
+        scopes_supported: ["read:users", "read:courses", "read:bundles", "read:lessons", "read:quizzes", "read:orders", "read:settings"],
+      });
+    }
+    return json({
+      resource: base,
+      authorization_servers: [base],
+      bearer_methods_supported: ["header"],
+      scopes_supported: ["read:users", "read:courses", "read:bundles", "read:lessons", "read:quizzes", "read:orders", "read:settings"],
+    });
   }
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const auth = await authenticate(req);
