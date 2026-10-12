@@ -57,9 +57,9 @@ async function callTool(name: string, args: Record<string, unknown>, auth: KeyRe
   if (name === "list_users") {
     const limit = Math.min(Math.max(Number(args.limit ?? 25), 1), 100);
     const offset = Math.max(Number(args.offset ?? 0), 0);
-    let query = admin.from("profiles").select("id,full_name,phone_number,real_email,role,stage_id,created_at").range(offset, offset + limit - 1).order("created_at", { ascending: false });
+    let query = admin.from("profiles").select("id,full_name,phone_number,email,role,stage_id,created_at").range(offset, offset + limit - 1).order("created_at", { ascending: false });
     const search = String(args.search ?? "").trim().slice(0, 80).replace(/[(),%]/g, "");
-    if (search) query = query.or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%,real_email.ilike.%${search}%`);
+    if (search) query = query.or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%,email.ilike.%${search}%`);
     const { data, error } = await query;
     if (error) throw new Error(error.message);
     return data;
@@ -67,8 +67,9 @@ async function callTool(name: string, args: Record<string, unknown>, auth: KeyRe
   if (name === "get_student") {
     const id = String(args.user_id ?? "");
     if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("invalid_user_id");
-    const { data, error } = await admin.rpc("admin_get_student", { _uid: id });
+    const { data, error } = await admin.from("profiles").select("id,full_name,phone_number,email,role,stage_id,student_id,created_at,is_banned").eq("id", id).maybeSingle();
     if (error) throw new Error(error.message);
+    if (!data) throw new Error("not_found");
     return data;
   }
   throw new Error("Unknown tool");
