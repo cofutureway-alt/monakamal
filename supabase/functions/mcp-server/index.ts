@@ -36,6 +36,8 @@ async function authenticate(req: Request): Promise<KeyRecord | null> {
   if (current && current.reset > now && current.count >= 60) return null;
   if (!current || current.reset <= now) attempts.set(ip, { count: 1, reset: now + 60_000 }); else current.count++;
   const supplied = req.headers.get("x-api-key") ?? (req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1] ?? "");
+  const { data: setting } = await admin.from("mcp_settings").select("value").eq("key", "enabled").maybeSingle();
+  if (setting?.value && (setting.value as { enabled?: boolean }).enabled === false) return null;
   if (!supplied || supplied.length < 32) return null;
   const { data, error } = await admin.rpc("mcp_verify_api_key", { _key: supplied });
   if (error || !data?.[0]) return null;
@@ -85,7 +87,8 @@ async function handle(rpc: Rpc, auth: KeyRecord) {
       await admin.rpc("mcp_write_audit", { _action: `tool.${name}`, _resource: name, _metadata: { ok: true }, _api_key_id: auth.apiKeyId });
       return { jsonrpc: "2.0", id: rpc.id ?? null, result: { content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value) }], isError: false } };
     } catch (e) {
-      return { jsonrpc: "2.0", id: rpc.id ?? null, result: { content: [{ type: "text", text: String(e instanceof Error ? e.message : e) }], isError: true } };
+      await admin.rpc("mcp_write_audit", { _action: `tool.${name}`, _resource: name, _metadata: { ok: false, error: String(e instanceof Error ? e.message : e).slice(0, 200) }, _api_key_id: auth.apiKeyId });
+      return { jsonrpc: "2.0", id: rpc.id ?? null, result: { content: [{ type: "text", text: "Tool execution failed" }], isError: true } };
     }
   }
   return error(rpc.id, -32601, "Method not found");
