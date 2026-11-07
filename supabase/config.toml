@@ -37,3 +37,12 @@ verify_jwt = false
 
 [functions.live-sessions]
 verify_jwt = true
+
+[functions.zoom-webhook]
+verify_jwt = false
+
+[functions.recording-ingest-tick]
+verify_jwt = false
+
+[functions.live-media]
+verify_jwt = true
