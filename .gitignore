@@ -36,3 +36,7 @@ test-out.txt
 workers/live-media/.dev.vars
 workers/live-media/node_modules
 .secrets.tmp
+.qa_admin_token
+.qa_admin_refresh
+.qa_student_token
+.qa_student_refresh
