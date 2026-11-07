@@ -23,6 +23,7 @@ interface SessionRow {
   link_version: number;
   position: number;
   recording_enabled: boolean;
+  started_at: string | null;
 }
 
 const ARABIC_ERRORS: Record<string, string> = {
