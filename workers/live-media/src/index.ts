@@ -99,8 +99,10 @@ export default {
       return await handle(request, env);
     } catch (e) {
       // Workers would otherwise emit an HTML 500 that callers cannot parse.
-      console.error("worker_error", e instanceof Error ? e.message : String(e));
-      return json({ error: "INTERNAL" }, 500, request.headers.get("Origin"));
+      const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+      console.error("worker_error", msg);
+      const detail = e instanceof Error ? e.message.slice(0, 160) : "unknown";
+      return json({ error: "INTERNAL", detail }, 500, request.headers.get("Origin"));
     }
   },
 };
@@ -223,8 +225,13 @@ async function handle(request: Request, env: Env): Promise<Response> {
           return json({ error: `SOURCE_${upstream.status}` }, 502, origin);
         }
 
-        const part = await upload.uploadPart(partNumber, upstream.body as ReadableStream);
-        return json({ etag: part.etag, bytes: part.size }, 200, origin);
+        // R2's uploadPart requires a stream of known length; an upstream fetch
+        // body has none, so buffer this one part (<= part_size, 32 MiB) first.
+        const chunk = await upstream.arrayBuffer();
+        const part = await upload.uploadPart(partNumber, chunk);
+        // R2UploadedPart carries only the etag, so the byte count is what we
+        // actually sent (the caller needs it to resume from the right offset).
+        return json({ etag: part.etag, bytes: chunk.byteLength }, 200, origin);
       }
 
       if (action === "complete") {
