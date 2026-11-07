@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarClock, Copy, Download, FileText, Loader2, Radio } from "lucide-react";
+import { CalendarClock, Copy, Download, FileText, Loader2, PlayCircle, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -196,12 +196,19 @@ const LiveSessionPanel = ({ sessionId, courseId, courseTitle }: Props) => {
         ) : data.status === "ended" ? (
           <div className="flex items-center justify-center gap-2 rounded-xl bg-muted px-4 py-6 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            انتهت الجلسة، جارٍ تجهيز التسجيل
+            {data.processing_count > 0
+              ? `جارٍ تجهيز ${data.processing_count} تسجيل…`
+              : "انتهت الجلسة، جارٍ تجهيز التسجيل"}
           </div>
         ) : data.status === "completed" ? (
-          <div className="rounded-xl bg-muted px-4 py-6 text-center text-sm text-muted-foreground">
-            <div className="font-semibold mb-2">التسجيلات</div>
-            لا توجد تسجيلات بعد
+          <div className="rounded-xl bg-muted px-4 py-5 text-center text-sm text-muted-foreground">
+            {data.no_recording_reason
+              ? data.no_recording_reason === "disabled"
+                ? "لم يتم تفعيل التسجيل لهذه الجلسة"
+                : data.no_recording_reason === "basic_account"
+                  ? "لا يتوفر تسجيل لهذه الجلسة"
+                  : "لم يصل تسجيل هذه الجلسة"
+              : "لا توجد تسجيلات بعد"}
           </div>
         ) : openNow ? (
           <div className="space-y-3 text-center">
@@ -251,6 +258,33 @@ const LiveSessionPanel = ({ sessionId, courseId, courseTitle }: Props) => {
           </div>
         )}
       </section>
+
+      {data.recordings.length > 0 && (
+        <section className="rounded-2xl border border-border/60 bg-card p-5 md:p-6 space-y-3">
+          <h2 className="text-lg font-bold">تسجيلات الجلسة</h2>
+          <div className="space-y-2">
+            {data.recordings.map((part) => (
+              <div
+                key={part.part_index}
+                className="flex items-center gap-3 rounded-xl border border-border/60 p-3"
+              >
+                <span className="rounded-lg bg-primary/10 text-primary p-2">
+                  <PlayCircle className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold">الجزء {part.part_index}</div>
+                  {part.duration_minutes != null && (
+                    <div className="text-xs text-muted-foreground">{part.duration_minutes} دقيقة</div>
+                  )}
+                </div>
+                <Button size="sm" variant="outline" asChild>
+                  <a href={`/courses/${courseId}/learn/lesson/${part.lesson_id}`}>مشاهدة</a>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {data.files.length > 0 && (
         <section className="rounded-2xl border border-border/60 bg-card p-5 md:p-6 space-y-3">

@@ -5052,6 +5052,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      live_recording_ingest_tick: { Args: never; Returns: undefined }
       live_session_auto_end: { Args: never; Returns: undefined }
       live_session_dispatch_reminders: { Args: never; Returns: undefined }
       live_session_finalize: {

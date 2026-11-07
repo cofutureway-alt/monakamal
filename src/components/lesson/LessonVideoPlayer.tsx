@@ -9,6 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWatchTracker } from "@/hooks/use-watch-tracker";
 import Watermark from "./Watermark";
 import { DEFAULT_PLAYER_SETTINGS, type VideoPlayerSettings } from "@/hooks/use-player-settings";
+import { useQuery } from "@tanstack/react-query";
+import { getPlaybackUrl } from "@/lib/live-media-api";
 
 interface Props {
   lessonId: string;
@@ -41,6 +43,23 @@ export const LessonVideoPlayer = ({
   }, [provider, videoUrl]);
 
   const isBunny = parsed?.provider === "bunny";
+  const isR2 = parsed?.provider === "r2";
+
+  // R2 recordings need a short-lived signed URL; keep it for the whole lesson so
+  // seeking never re-requests, and refresh it once on a 403 media error.
+  const [r2Url, setR2Url] = useState<string | null>(null);
+  const r2Refreshed = useRef(false);
+  const playback = useQuery({
+    queryKey: ["live-media", "playback", lessonId],
+    queryFn: () => getPlaybackUrl(lessonId),
+    enabled: isR2,
+    staleTime: 3 * 60 * 60 * 1000,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (playback.data?.url) setR2Url(playback.data.url);
+  }, [playback.data?.url]);
   const shellRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -241,6 +260,129 @@ export const LessonVideoPlayer = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parsed?.provider, parsed?.id, isBunny, lessonId]);
 
+  // Setup Plyr for an HTML5 <video> fed by a signed R2 URL.
+  useEffect(() => {
+    if (!isR2 || !r2Url || !videoRef.current) return;
+
+    const video = document.createElement("video");
+    video.setAttribute("playsinline", "");
+    video.setAttribute("preload", "metadata");
+    video.setAttribute("controlsList", "nodownload");
+    video.setAttribute("crossorigin", "anonymous");
+    video.src = r2Url;
+    video.oncontextmenu = (e) => e.preventDefault();
+
+    videoRef.current.innerHTML = "";
+    videoRef.current.appendChild(video);
+
+    const speeds = settingsRef.current.speed_control_enabled
+      ? [1, ...settingsRef.current.allowed_speeds].filter((v, i, a) => a.indexOf(v) === i)
+      : [1];
+
+    const controls = [
+      "play-large",
+      "play",
+      "progress",
+      "current-time",
+      "duration",
+      "mute",
+      "volume",
+      "pip",
+      "fullscreen",
+    ];
+    if (settingsRef.current.speed_control_enabled) controls.splice(-2, 0, "settings");
+
+    const player = new Plyr(video, {
+      controls,
+      settings: settingsRef.current.speed_control_enabled ? ["speed"] : [],
+      speed: { selected: 1, options: speeds },
+      seekTime: settingsRef.current.seek_forward_seconds || 10,
+      keyboard: { focused: true, global: true },
+      ratio: "16:9",
+    });
+    plyrRef.current = player;
+
+    // A signed URL can expire mid-lesson; renew it exactly once per mount.
+    const onError = () => {
+      if (r2Refreshed.current) return;
+      r2Refreshed.current = true;
+      void playback.refetch().then((res) => {
+        const fresh = res.data?.url;
+        if (fresh) video.src = fresh;
+      });
+    };
+    video.addEventListener("error", onError);
+
+    let tickTimer: number | null = null;
+    let lastTickTs = 0;
+    const startTicking = () => {
+      if (tickTimer) return;
+      lastTickTs = performance.now();
+      tickTimer = window.setInterval(() => {
+        if (document.hidden) return;
+        const now = performance.now();
+        const delta = (now - lastTickTs) / 1000;
+        lastTickTs = now;
+        try {
+          tracker.tick(player.currentTime || 0, delta);
+        } catch {
+          /* noop */
+        }
+      }, 1000);
+    };
+    const stopTicking = () => {
+      if (tickTimer) {
+        window.clearInterval(tickTimer);
+        tickTimer = null;
+      }
+    };
+
+    player.on("loadedmetadata", () => player.duration && tracker.setDuration(player.duration));
+    player.on("ready", () => {
+      const d = player.duration;
+      if (d) tracker.setDuration(d);
+      const last = tracker.stateRef.current.last;
+      if (last > 2 && d && last < d - 3) {
+        try {
+          player.currentTime = last;
+        } catch {
+          /* noop */
+        }
+      }
+    });
+    player.on("play", startTicking);
+    player.on("pause", () => {
+      stopTicking();
+      tracker.flush();
+    });
+    player.on("ended", () => {
+      stopTicking();
+      tracker.flush();
+    });
+    player.on("seeked", () => tracker.setPosition(player.currentTime || 0));
+
+    const saveTimer = window.setInterval(() => tracker.flush(), 8000);
+    const onBeforeUnload = () => tracker.flush({ keepalive: true });
+    window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("pagehide", onBeforeUnload);
+
+    return () => {
+      stopTicking();
+      window.clearInterval(saveTimer);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("pagehide", onBeforeUnload);
+      video.removeEventListener("error", onError);
+      tracker.flush();
+      try {
+        player.destroy();
+      } catch {
+        /* noop */
+      }
+      plyrRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isR2, r2Url, lessonId]);
+
   // Keyboard shortcuts: Left/Right arrows seek by configured amount.
   // (Overrides Plyr's default 5s step to match admin settings.)
   useEffect(() => {
@@ -348,6 +490,11 @@ export const LessonVideoPlayer = ({
             allowFullScreen
             title={title}
           />
+        ) : isR2 && !r2Url ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <PlayCircle className="w-10 h-10 opacity-40 animate-pulse" />
+            <div className="text-sm">جارٍ تجهيز رابط المشاهدة…</div>
+          </div>
         ) : (
           <div ref={videoRef} className="plyr-shell w-full h-full" />
         )}

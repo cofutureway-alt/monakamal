@@ -27,6 +27,17 @@ export interface LiveSessionState {
   link_version: number;
   segment_count: number;
   files: LiveSessionFileMeta[];
+  recordings: LiveSessionRecordingPart[];
+  processing_count: number;
+  no_recording_reason: string | null;
+  i_joined: boolean;
+}
+
+export interface LiveSessionRecordingPart {
+  part_index: number;
+  lesson_id: string;
+  status: string;
+  duration_minutes: number | null;
 }
 
 export interface LiveSessionJoin {

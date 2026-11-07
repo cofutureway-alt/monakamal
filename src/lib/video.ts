@@ -1,4 +1,4 @@
-export type VideoProvider = "youtube" | "bunny" | "vimeo";
+export type VideoProvider = "youtube" | "bunny" | "vimeo" | "r2";
 
 export interface ParsedVideo {
   provider: VideoProvider;
@@ -13,6 +13,12 @@ export function parseVideoUrl(
 ): ParsedVideo | { error: string } {
   const url = raw.trim();
   if (!url) return { error: "أدخل رابط الفيديو" };
+
+  // R2 recordings store an object key, not a URL; it is never validated or
+  // rewritten here (playback URLs are minted server-side).
+  if (provider === "r2") {
+    return { provider: "r2", id: url, url };
+  }
 
   if (provider === "youtube") {
     // youtube.com/watch?v=, youtu.be/, youtube.com/shorts/

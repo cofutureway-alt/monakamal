@@ -1,4 +1,4 @@
-import { Copy, Files, MoreVertical, Radio } from "lucide-react";
+import { Copy, Files, MoreVertical, Radio, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +8,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useState } from "react";
+import LiveRecordingsTab from "./LiveRecordingsTab";
 import { formatCairo } from "@/lib/cairo-time";
 import { liveErrorMessage, type LiveSessionRow } from "@/lib/live-sessions-api";
 import LiveStatusPill from "./LiveStatusPill";
@@ -15,6 +18,7 @@ import LiveStatusPill from "./LiveStatusPill";
 export interface AdminSessionView extends LiveSessionRow {
   host_name?: string | null;
   file_count?: number;
+  attendee_count?: number;
 }
 
 interface Props {
@@ -30,6 +34,7 @@ const LiveSessionAdminCard = ({ session, courseId, onEdit, onCancel, onDelete }:
   const dayNumber = formatCairo(start, "date").split(" ")[0];
   const shortMonth = formatCairo(start, "monthYear").split(" ")[0];
   const deletable = session.status === "scheduled" || session.status === "cancelled";
+  const [recordingsOpen, setRecordingsOpen] = useState(false);
 
   const copyPageLink = async () => {
     const url = `${window.location.origin}/courses/${courseId}/learn/live_session/${session.id}`;
@@ -74,6 +79,11 @@ const LiveSessionAdminCard = ({ session, courseId, onEdit, onCancel, onDelete }:
               <Files className="h-3 w-3" /> {session.file_count}
             </span>
           )}
+          {(session.attendee_count ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] text-accent">
+              <Users className="h-3 w-3" /> {session.attendee_count} حاضر
+            </span>
+          )}
         </div>
       </div>
 
@@ -85,6 +95,7 @@ const LiveSessionAdminCard = ({ session, courseId, onEdit, onCancel, onDelete }:
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => onEdit(session)}>تعديل</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setRecordingsOpen(true)}>التسجيلات</DropdownMenuItem>
           <DropdownMenuItem onClick={copyPageLink}>
             <Copy className="h-4 w-4" /> نسخ رابط صفحة الجلسة
           </DropdownMenuItem>
@@ -98,6 +109,17 @@ const LiveSessionAdminCard = ({ session, courseId, onEdit, onCancel, onDelete }:
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <Sheet open={recordingsOpen} onOpenChange={setRecordingsOpen}>
+        <SheetContent side="left" className="sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>تسجيلات الجلسة</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            <LiveRecordingsTab sessionId={session.id} courseId={courseId} />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

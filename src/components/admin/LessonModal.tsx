@@ -391,6 +391,11 @@ const LessonModal = ({ open, onOpenChange, unitId, lesson, nextPosition, onSaved
 
               <div className="space-y-2">
                 <Label>مصدر الفيديو</Label>
+                {provider === "r2" ? (
+                  <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+                    تسجيل جلسة مباشرة
+                  </div>
+                ) : (
                 <div className="grid grid-cols-3 gap-2 p-1 bg-muted rounded-lg">
                   {providers.map((p) => {
                     const Icon = p.icon;
@@ -419,6 +424,7 @@ const LessonModal = ({ open, onOpenChange, unitId, lesson, nextPosition, onSaved
                     );
                   })}
                 </div>
+                )}
                 <AnimatePresence>
                   {provider === "youtube" && (
                     <motion.div
@@ -439,7 +445,20 @@ const LessonModal = ({ open, onOpenChange, unitId, lesson, nextPosition, onSaved
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="vurl">رابط الفيديو <span className="text-destructive">*</span></Label>
+                <Label htmlFor="vurl">
+                  {provider === "r2" ? "التسجيل" : "رابط الفيديو"}{" "}
+                  {provider !== "r2" && <span className="text-destructive">*</span>}
+                </Label>
+                {provider === "r2" ? (
+                  // The R2 object key belongs to the recording pipeline; editing
+                  // it by hand would break the lesson.
+                  <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+                    تسجيل جلسة مباشرة
+                    <span className="block text-xs text-muted-foreground mt-0.5" dir="ltr">
+                      {videoUrl}
+                    </span>
+                  </div>
+                ) : (
                 <Input
                   id="vurl"
                   dir="ltr"
@@ -448,6 +467,7 @@ const LessonModal = ({ open, onOpenChange, unitId, lesson, nextPosition, onSaved
                   onBlur={handleUrlBlur}
                   placeholder={providers.find((p) => p.key === provider)?.placeholder}
                 />
+                )}
                 {videoError && (
                   <p className="text-xs text-destructive">{videoError}</p>
                 )}
