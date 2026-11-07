@@ -19,6 +19,13 @@ import {
   Eye,
   Star,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -59,6 +66,7 @@ interface CourseRow {
   assignments_count: number;
   questions_count: number;
   is_featured: boolean;
+  course_type: "recorded" | "live";
 }
 
 interface StageOpt {
@@ -88,6 +96,7 @@ const AdminCourses = () => {
   const [query, setQuery] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [featuredFilter, setFeaturedFilter] = useState<"all" | "featured" | "not_featured">("all");
   const [deleting, setDeleting] = useState<CourseRow | null>(null);
   const [deletePending, setDeletePending] = useState(false);
@@ -101,7 +110,7 @@ const AdminCourses = () => {
       supabase
         .from("courses")
         .select(
-          "id, title, description, thumbnail_url, status, stage_id, is_featured, created_at, stages(name), units(id, lessons(id))",
+          "id, title, description, thumbnail_url, status, stage_id, is_featured, created_at, course_type, stages(name), units(id, lessons(id))",
         )
         .order("created_at", { ascending: false }),
       supabase.from("stages").select("id, name").order("name"),
@@ -161,6 +170,7 @@ const AdminCourses = () => {
         stage_id: c.stage_id,
         created_at: c.created_at,
         stage_name: c.stages?.name ?? null,
+        course_type: (c as any).course_type ?? "recorded",
         units_count: c.units?.length ?? 0,
         lessons_count:
           c.units?.reduce(
@@ -186,11 +196,12 @@ const AdminCourses = () => {
         return false;
       if (stageFilter !== "all" && c.stage_id !== stageFilter) return false;
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
+      if (typeFilter !== "all" && (c.course_type ?? "recorded") !== typeFilter) return false;
       if (featuredFilter === "featured" && !c.is_featured) return false;
       if (featuredFilter === "not_featured" && c.is_featured) return false;
       return true;
     });
-  }, [courses, query, stageFilter, statusFilter, featuredFilter]);
+  }, [courses, query, stageFilter, statusFilter, featuredFilter, typeFilter]);
 
   const confirmDelete = async () => {
     if (!deleting) return;
@@ -298,14 +309,22 @@ const AdminCourses = () => {
               <List className="w-4 h-4" /> جدول
             </button>
           </div>
-          <Button
-            onClick={() => navigate("/admin/courses/new")}
-            size="lg"
-            className="shadow-lg shadow-primary/20"
-          >
-            <Plus className="w-4 h-4 ml-2" />
-            دورة جديدة
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="lg" className="shadow-lg shadow-primary/20">
+                <Plus className="w-4 h-4 ml-2" />
+                دورة جديدة
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate("/admin/courses/new")}>
+                دورة مسجّلة
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/admin/courses/new?type=live")}>
+                <Radio className="w-4 h-4" /> دورة مباشرة
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </motion.div>
 
@@ -347,6 +366,16 @@ const AdminCourses = () => {
             <SelectItem value="coming_soon">قريبًا</SelectItem>
             <SelectItem value="draft">مسودة</SelectItem>
 
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="النوع" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">كل الأنواع</SelectItem>
+            <SelectItem value="recorded">مسجّلة</SelectItem>
+            <SelectItem value="live">مباشرة</SelectItem>
           </SelectContent>
         </Select>
         <Select value={featuredFilter} onValueChange={(v) => setFeaturedFilter(v as any)}>
@@ -432,7 +461,14 @@ const AdminCourses = () => {
                         onChange={() => toggleOne(c.id)}
                       />
                     </td>
-                    <td className="p-3 font-semibold">{c.title}</td>
+                    <td className="p-3 font-semibold">
+                      <span className="inline-flex items-center gap-2">
+                        {c.title}
+                        {c.course_type === "live" && (
+                          <Badge className="bg-primary/10 text-primary border-0">مباشر</Badge>
+                        )}
+                      </span>
+                    </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{c.stage_name || "—"}</td>
                     <td className="p-3">
                       <Badge

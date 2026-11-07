@@ -74,6 +74,19 @@ import {
 import LessonModal, { type LessonRecord } from "@/components/admin/LessonModal";
 import QuizWizard, { type QuizRecord } from "@/components/admin/QuizWizard";
 import AssignmentModal, { type AssignmentRecord } from "@/components/admin/AssignmentModal";
+import LiveSessionFormModal, {
+  type LiveSessionFormTarget,
+} from "@/components/live/LiveSessionFormModal";
+import LiveSessionAdminCard, {
+  type AdminSessionView,
+} from "@/components/live/LiveSessionAdminCard";
+import LiveSessionsTimeline from "@/components/live/LiveSessionsTimeline";
+import {
+  cancelLiveSession,
+  deleteLiveSession,
+  liveErrorMessage,
+} from "@/lib/live-sessions-api";
+import { Radio } from "lucide-react";
 
 // ---------- Types ----------
 interface Course {
@@ -81,6 +94,7 @@ interface Course {
   title: string;
   status: "draft" | "coming_soon" | "published";
   scheduled_publish_at: string | null;
+  course_type?: "recorded" | "live";
 }
 
 
@@ -95,6 +109,8 @@ interface Unit {
   description: string | null;
   position: number;
   content: ContentItem[];
+  /** Live sessions attached to this unit, ordered by position then start. */
+  sessions: AdminSessionView[];
 }
 
 // ---------- Autosave indicator ----------
@@ -392,6 +408,10 @@ const UnitCard = ({
   onAddLesson,
   onAddQuiz,
   onAddAssignment,
+  onAddLiveSession,
+  onEditLiveSession,
+  onCancelLiveSession,
+  onDeleteLiveSession,
   onEditLesson,
   onDeleteLesson,
   onEditQuiz,
@@ -407,6 +427,10 @@ const UnitCard = ({
   onAddLesson: () => void;
   onAddQuiz: () => void;
   onAddAssignment: () => void;
+  onAddLiveSession: () => void;
+  onEditLiveSession: (s: AdminSessionView) => void;
+  onCancelLiveSession: (s: AdminSessionView) => void;
+  onDeleteLiveSession: (s: AdminSessionView) => void;
   onEditLesson: (l: LessonRecord) => void;
   onDeleteLesson: (l: LessonRecord) => void;
   onEditQuiz: (q: QuizRecord) => void;
@@ -526,14 +550,24 @@ const UnitCard = ({
                       />
                     );
                   })}
-                  {unit.content.length === 0 && (
+                  {unit.sessions.map((s) => (
+                    <LiveSessionAdminCard
+                      key={`ls-${s.id}`}
+                      session={s}
+                      courseId={s.course_id}
+                      onEdit={onEditLiveSession}
+                      onCancel={onCancelLiveSession}
+                      onDelete={onDeleteLiveSession}
+                    />
+                  ))}
+                  {unit.content.length === 0 && unit.sessions.length === 0 && (
                     <div className="text-center text-xs text-muted-foreground py-6 border border-dashed rounded-lg">
                       أضف درسًا أو اختبارًا أو واجبًا لهذه الوحدة
                     </div>
                   )}
                 </div>
               </SortableContext>
-              <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                 <Button variant="outline" size="sm" onClick={onAddLesson}>
                   <Plus className="w-4 h-4 ml-1" />
                   درس
@@ -555,6 +589,15 @@ const UnitCard = ({
                 >
                   <ClipboardCheck className="w-4 h-4 ml-1" />
                   واجب
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onAddLiveSession}
+                  className="border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  <Radio className="w-4 h-4 ml-1" />
+                  جلسة مباشرة
                 </Button>
               </div>
             </div>
@@ -596,6 +639,13 @@ const CourseBuilder = () => {
 
   const [publishOpen, setPublishOpen] = useState(false);
 
+  // ---- Live sessions (Phase 1) ----
+  const [sessions, setSessions] = useState<AdminSessionView[]>([]);
+  const [sessionModalOpen, setSessionModalOpen] = useState(false);
+  const [sessionTarget, setSessionTarget] = useState<LiveSessionFormTarget>({ unitId: null });
+  const [cancellingSession, setCancellingSession] = useState<AdminSessionView | null>(null);
+  const [deletingSession, setDeletingSession] = useState<AdminSessionView | null>(null);
+
   const [activeDrag, setActiveDrag] = useState<
     | { type: "unit"; unit: Unit }
     | { type: "lesson"; lesson: LessonRecord }
@@ -624,7 +674,7 @@ const CourseBuilder = () => {
     if (!id) return;
     const { data: c, error: cErr } = await supabase
       .from("courses")
-      .select("id, title, status, scheduled_publish_at")
+      .select("id, title, status, scheduled_publish_at, course_type")
       .eq("id", id)
       .maybeSingle();
 
@@ -635,7 +685,7 @@ const CourseBuilder = () => {
     }
     setCourse(c as Course);
 
-    const [{ data: u }, { data: qz }, { data: asg }] = await Promise.all([
+    const [{ data: u }, { data: qz }, { data: asg }, { data: liveRows }] = await Promise.all([
       supabase
         .from("units")
         .select(
@@ -651,7 +701,36 @@ const CourseBuilder = () => {
         .from("assignments")
         .select("*")
         .eq("course_id", id),
+      (supabase as any)
+        .from("live_sessions")
+        .select(
+          "id, course_id, unit_id, title, scheduled_start_at, duration_minutes, status, host_user_id, link_version, position, recording_enabled",
+        )
+        .eq("course_id", id)
+        .order("scheduled_start_at"),
     ]);
+
+    const { data: hostRows } = await (supabase as any)
+      .from("profiles")
+      .select("id, full_name")
+      .in(
+        "id",
+        Array.from(
+          new Set(((liveRows ?? []) as any[]).map((r) => r.host_user_id).filter(Boolean)),
+        ).length
+          ? Array.from(
+              new Set(((liveRows ?? []) as any[]).map((r) => r.host_user_id).filter(Boolean)),
+            )
+          : ["00000000-0000-0000-0000-000000000000"],
+      );
+    const hostName = new Map<string, string | null>(
+      ((hostRows ?? []) as any[]).map((h) => [h.id, h.full_name]),
+    );
+    const liveSessions: AdminSessionView[] = ((liveRows ?? []) as any[]).map((r) => ({
+      ...(r as AdminSessionView),
+      host_name: hostName.get(r.host_user_id) ?? null,
+    }));
+    setSessions(liveSessions);
 
     const quizzesByUnit = new Map<string, QuizRecord[]>();
     (qz ?? []).forEach((q: any) => {
@@ -695,6 +774,9 @@ const CourseBuilder = () => {
         description: row.description,
         position: row.position,
         content,
+        sessions: liveSessions
+          .filter((s) => s.unit_id === row.id && s.status !== "cancelled")
+          .sort((a, b) => a.position - b.position),
       };
     });
     setUnits(mapped);
@@ -1025,6 +1107,43 @@ const CourseBuilder = () => {
     setEditingAssignment(assignment);
     setAssignmentModalOpen(true);
   };
+  // ---- Live session handlers ----
+  const openNewLiveSession = (unitId: string | null, createUnitTitle?: string) => {
+    setSessionTarget({ unitId, createUnitTitle: createUnitTitle ?? null });
+    setSessionModalOpen(true);
+  };
+
+  const openEditLiveSession = (session: AdminSessionView) => {
+    setSessionTarget({ unitId: session.unit_id, row: session });
+    setSessionModalOpen(true);
+  };
+
+  const confirmCancelSession = async () => {
+    if (!cancellingSession) return;
+    try {
+      await cancelLiveSession(cancellingSession.id);
+      toast.success("تم إلغاء الجلسة");
+    } catch (e) {
+      toast.error(liveErrorMessage(e instanceof Error ? e.message : null));
+    } finally {
+      setCancellingSession(null);
+      load();
+    }
+  };
+
+  const confirmDeleteSession = async () => {
+    if (!deletingSession) return;
+    try {
+      await deleteLiveSession(deletingSession.id);
+      toast.success("تم حذف الجلسة");
+    } catch (e) {
+      toast.error(liveErrorMessage(e instanceof Error ? e.message : null));
+    } finally {
+      setDeletingSession(null);
+      load();
+    }
+  };
+
   const deleteAssignment = async () => {
     if (!deletingAssignment) return;
     await markSaving(async () => {
@@ -1195,16 +1314,34 @@ const CourseBuilder = () => {
           <Info className="w-4 h-4" />
           {units.length} وحدات
         </div>
-        <Button
-          onClick={() => {
-            setEditingUnit(null);
-            setUnitModalOpen(true);
-          }}
-        >
-          <Plus className="w-4 h-4 ml-2" />
-          إضافة وحدة
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={() => openNewLiveSession(null, null)}>
+            <Radio className="w-4 h-4 ml-2" />
+            جدولة جلسة مباشرة
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingUnit(null);
+              setUnitModalOpen(true);
+            }}
+          >
+            <Plus className="w-4 h-4 ml-2" />
+            إضافة وحدة
+          </Button>
+        </div>
+
       </div>
+
+      {course?.course_type === "live" && (
+        <LiveSessionsTimeline
+          sessions={sessions}
+          courseId={id!}
+          onAdd={() => openNewLiveSession(null, null)}
+          onEdit={openEditLiveSession}
+          onCancel={setCancellingSession}
+          onDelete={setDeletingSession}
+        />
+      )}
 
       {units.length === 0 ? (
         <motion.div
@@ -1259,6 +1396,10 @@ const CourseBuilder = () => {
                   onAddLesson={() => openAddLesson(u.id)}
                   onAddQuiz={() => openAddQuiz(u.id)}
                   onAddAssignment={() => openAddAssignment(u.id)}
+                  onAddLiveSession={() => openNewLiveSession(u.id)}
+                  onEditLiveSession={openEditLiveSession}
+                  onCancelLiveSession={setCancellingSession}
+                  onDeleteLiveSession={setDeletingSession}
                   onEditLesson={openEditLesson}
                   onDeleteLesson={setDeletingLesson}
                   onEditQuiz={openEditQuiz}
@@ -1491,6 +1632,52 @@ const CourseBuilder = () => {
             >
               تأكيد
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <LiveSessionFormModal
+        open={sessionModalOpen}
+        onOpenChange={setSessionModalOpen}
+        courseId={id!}
+        target={sessionTarget}
+        onSaved={load}
+      />
+
+      <AlertDialog
+        open={Boolean(cancellingSession)}
+        onOpenChange={(v) => !v && setCancellingSession(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>إلغاء الجلسة؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم إلغاء اجتماع Zoom وإشعار الطلاب. لا يمكن التراجع.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); void confirmCancelSession(); }}>
+              إلغاء الجلسة
+            </AlertDialogAction>
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(deletingSession)}
+        onOpenChange={(v) => !v && setDeletingSession(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف الجلسة؟</AlertDialogTitle>
+            <AlertDialogDescription>سيتم حذف الجلسة نهائياً.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); void confirmDeleteSession(); }}>
+              حذف
+            </AlertDialogAction>
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

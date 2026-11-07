@@ -28,6 +28,7 @@ import ContentSidebarItem from "@/components/course-content/ContentSidebarItem";
 import LessonContentPanel from "@/components/course-content/LessonContentPanel";
 import QuizInlinePanel from "@/components/course-content/QuizInlinePanel";
 import AssignmentInlinePanel from "@/components/course-content/AssignmentInlinePanel";
+import LiveSessionPanel from "@/components/live/LiveSessionPanel";
 
 interface CourseLite {
   id: string;
@@ -263,6 +264,13 @@ const CourseContentPage = () => {
                   key={activeItem.id}
                   quizId={activeItem.id}
                   onAttemptCreated={reload}
+                />
+              ) : activeItem.type === "live_session" ? (
+                <LiveSessionPanel
+                  key={activeItem.id}
+                  sessionId={activeItem.id}
+                  courseId={courseId!}
+                  courseTitle={course?.title}
                 />
               ) : (
                 <AssignmentInlinePanel

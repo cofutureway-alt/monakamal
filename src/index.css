@@ -72,6 +72,11 @@
 }
 
 @layer base {
+  :root {
+    /* Height of the global live-session banner; 0px when nothing is live. */
+    --live-banner-h: 0px;
+  }
+
   * {
     @apply border-border;
   }
@@ -83,6 +88,7 @@
   body {
     @apply bg-background text-foreground font-tajawal;
     font-family: 'IBM Plex Sans Arabic', 'Tajawal', sans-serif;
+    padding-top: var(--live-banner-h);
   }
 
   @media (max-width: 767px) {

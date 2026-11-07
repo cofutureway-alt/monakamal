@@ -30,3 +30,6 @@ supabase/.temp
 .env.local
 .env.*.local
 
+
+.wrangler/
+test-out.txt

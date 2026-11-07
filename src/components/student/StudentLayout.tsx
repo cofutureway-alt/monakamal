@@ -131,7 +131,7 @@ const StudentLayout = () => {
   return (
     <div className="min-h-screen bg-background flex w-full" dir="rtl">
       <aside className="hidden lg:block w-72 shrink-0 border-l border-border/60 bg-card/50 backdrop-blur-sm">
-        <div className="sticky top-0 h-screen">
+        <div className="sticky top-[var(--live-banner-h,0px)] h-[calc(100vh-var(--live-banner-h,0px))]">
           <SidebarInner />
         </div>
       </aside>
@@ -169,7 +169,7 @@ const StudentLayout = () => {
       </AnimatePresence>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 h-16 border-b border-border/60 bg-background/80 backdrop-blur-md flex items-center justify-between px-4 md:px-8">
+        <header className="sticky top-[var(--live-banner-h,0px)] z-30 h-16 border-b border-border/60 bg-background/80 backdrop-blur-md flex items-center justify-between px-4 md:px-8">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"

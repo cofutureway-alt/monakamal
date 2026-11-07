@@ -380,7 +380,7 @@ const AdminLayout = ({ children }: { children?: ReactNode }) => {
     <div className="min-h-screen bg-background flex w-full" dir="rtl">
       {/* Desktop sidebar */}
       <aside className={`hidden lg:block ${collapsed ? "w-20" : "w-72"} shrink-0 border-l border-border/60 bg-card/50 backdrop-blur-sm transition-[width] duration-300`}>
-        <div className="sticky top-0 h-screen">
+        <div className="sticky top-[var(--live-banner-h,0px)] h-[calc(100vh-var(--live-banner-h,0px))]">
           <SidebarContent collapsed={collapsed} />
         </div>
       </aside>
@@ -420,7 +420,7 @@ const AdminLayout = ({ children }: { children?: ReactNode }) => {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 h-16 border-b border-border/60 bg-background/80 backdrop-blur-md flex items-center justify-between px-4 md:px-8">
+        <header className="sticky top-[var(--live-banner-h,0px)] z-30 h-16 border-b border-border/60 bg-background/80 backdrop-blur-md flex items-center justify-between px-4 md:px-8">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"

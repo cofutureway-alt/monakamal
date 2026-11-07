@@ -168,7 +168,7 @@ const Navbar = () => {
         : "/dashboard";
 
   return (
-    <nav className="sticky top-0 right-0 left-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-2.5">
+    <nav className="sticky top-[var(--live-banner-h,0px)] right-0 left-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-2.5">
       <div className="container mx-auto flex items-center justify-between min-h-[4.5rem]">
         <Link to="/" className="flex items-center group py-1">
           <img src={logoUrl} alt="منصة الأستاذة منى كامل" className="h-16 sm:h-20 md:h-24 w-auto max-h-24 object-contain transition-transform group-hover:scale-105" />

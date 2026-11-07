@@ -10,12 +10,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { toast } from "sonner";
+import UpcomingLiveSessionsCard from "@/components/live/UpcomingLiveSessionsCard";
 
 const MyCourses = () => {
   const courses = useMyCourses();
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      <UpcomingLiveSessionsCard />
+
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}

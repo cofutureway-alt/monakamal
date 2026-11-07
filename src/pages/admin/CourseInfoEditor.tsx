@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +34,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { parseEgpToPiastres, piastresToEgpNumber, formatPiastres } from "@/lib/money";
 import { useSignedThumbnail } from "@/hooks/use-signed-thumbnail";
+import EnrollmentModeCard, {
+  type EnrollmentMode,
+} from "@/components/live/EnrollmentModeCard";
 
 const schema = z
   .object({
@@ -107,6 +110,13 @@ const CourseInfoEditor = () => {
   const [selectedStageIds, setSelectedStageIds] = useState<string[]>([]);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
 
+  // ?type=live arrives from the AdminCourses "new course" dropdown.
+  const [searchParams] = useSearchParams();
+  const [courseType, setCourseType] = useState<"recorded" | "live">(
+    searchParams.get("type") === "live" ? "live" : "recorded",
+  );
+  const [enrollmentMode, setEnrollmentMode] = useState<EnrollmentMode>("standard");
+
   const {
     register,
     handleSubmit,
@@ -171,6 +181,8 @@ const CourseInfoEditor = () => {
 
           setSelectedStageIds(sIds);
           setSelectedSubjectIds(subIds);
+          if ((data as any).course_type) setCourseType((data as any).course_type);
+          if ((data as any).enrollment_mode) setEnrollmentMode((data as any).enrollment_mode);
 
           reset({
             title: data.title,
@@ -262,6 +274,9 @@ const CourseInfoEditor = () => {
             stage_ids: selectedStageIds,
             subject_ids: selectedSubjectIds,
             thumbnail_url: thumbPath,
+            course_type: courseType,
+            // Paid courses can never keep an auto mode (DB CHECK enforces it too).
+            enrollment_mode: values.is_paid ? "standard" : enrollmentMode,
             ...pricingPayload,
           })
           .eq("id", id!);
@@ -280,6 +295,8 @@ const CourseInfoEditor = () => {
             stage_ids: selectedStageIds,
             subject_ids: selectedSubjectIds,
             thumbnail_url: thumbPath,
+            course_type: courseType,
+            enrollment_mode: values.is_paid ? "standard" : enrollmentMode,
             status: "draft",
             created_by: userRes.user?.id ?? null,
             ...pricingPayload,
@@ -457,6 +474,17 @@ const CourseInfoEditor = () => {
             </div>
           </div>
         </div>
+
+        {isEdit && (
+          <EnrollmentModeCard
+            courseId={id!}
+            isPaid={isPaid}
+            mode={enrollmentMode}
+            onModeChange={setEnrollmentMode}
+            stageIds={selectedStageIds}
+            onStageIdsChange={setSelectedStageIds}
+          />
+        )}
 
         {/* Pricing section */}
         <div className="rounded-xl border border-border/70 bg-accent/20 p-4 md:p-5 space-y-4">

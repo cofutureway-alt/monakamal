@@ -6,7 +6,10 @@ import {
   ClipboardList,
   Lock,
   PlayCircle,
+  Radio,
 } from "lucide-react";
+import LiveStatusPill from "@/components/live/LiveStatusPill";
+import type { LiveSessionStatus } from "@/lib/live-sessions-api";
 import type { ContentItem, ContentItemType } from "@/hooks/use-unit-content-items";
 
 const TYPE_META: Record<
@@ -16,6 +19,7 @@ const TYPE_META: Record<
   lesson: { icon: PlayCircle, label: "درس" },
   quiz: { icon: ClipboardCheck, label: "اختبار" },
   assignment: { icon: ClipboardList, label: "واجب" },
+  live_session: { icon: Radio, label: "جلسة مباشرة" },
 };
 
 interface Props {
@@ -81,6 +85,11 @@ const ContentSidebarItem = ({ item, isCurrent, onNavigate }: Props) => {
               {meta.label}
               {item.type === "quiz" && item.extra?.durationMinutes != null && (
                 <> · {item.extra.durationMinutes} د</>
+              )}
+              {item.type === "live_session" && item.extra?.status && (
+                <span className="ms-1.5 inline-flex align-middle">
+                  <LiveStatusPill status={item.extra.status as LiveSessionStatus} size="xs" />
+                </span>
               )}
             </>
           )}

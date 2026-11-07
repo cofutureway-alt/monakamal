@@ -9,7 +9,7 @@ import { resolveCourseLockState, type CourseLockRow } from "@/lib/course-lock-ap
  * All new types must slot in here — the sidebar, routing, and completion
  * aggregation consume this normalized shape.
  */
-export type ContentItemType = "lesson" | "quiz" | "assignment";
+export type ContentItemType = "lesson" | "quiz" | "assignment" | "live_session";
 
 export interface ContentItem {
   id: string;
@@ -25,6 +25,8 @@ export interface ContentItem {
   extra?: {
     durationMinutes?: number;
     endAt?: string;
+    startAt?: string;
+    status?: string;
   };
 }
 
@@ -87,7 +89,7 @@ export function useCourseContent(courseId: string | undefined) {
     const unitIds = uList.map((u) => u.id);
 
     // Lessons + quizzes + assignments for these units, in parallel.
-    const [lessonsRes, quizzesArrays, assignmentsRes] = await Promise.all([
+    const [lessonsRes, quizzesArrays, assignmentsRes, sessionsRes] = await Promise.all([
       unitIds.length
         ? supabase
             .from("lessons_public")
@@ -102,6 +104,13 @@ export function useCourseContent(courseId: string | undefined) {
             .from("assignments")
             .select("id, unit_id, title, order_index, end_at")
             .in("unit_id", unitIds)
+        : Promise.resolve({ data: [] as any[] }),
+      unitIds.length
+        ? (supabase as any)
+            .from("live_sessions")
+            .select("id, unit_id, title, position, status, scheduled_start_at, duration_minutes")
+            .in("unit_id", unitIds)
+            .neq("status", "cancelled")
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
@@ -119,6 +128,16 @@ export function useCourseContent(courseId: string | undefined) {
       quizzesByUnit.set(uid, list);
       list.forEach((q) => allQuizIds.push(q.id));
     });
+
+    const liveSessions = ((sessionsRes as any).data ?? []) as {
+      id: string;
+      unit_id: string;
+      title: string;
+      position: number;
+      status: string;
+      scheduled_start_at: string;
+      duration_minutes: number;
+    }[];
 
     const assignments = ((assignmentsRes as any).data ?? []) as {
       id: string;
@@ -225,7 +244,27 @@ export function useCourseContent(courseId: string | undefined) {
           routePath: contentRoute(courseId, "assignment", a.id),
           extra: { endAt: a.end_at },
         }));
-      const items = [...uLessons, ...uQuizzes, ...uAssignments].sort(
+      // Live sessions interleave with lessons by `position`, same ordering rule.
+      const uSessions: ContentItem[] = liveSessions
+        .filter((ls) => ls.unit_id === u.id)
+        .map((ls) => ({
+          id: ls.id,
+          type: "live_session" as const,
+          unitId: u.id,
+          title: ls.title,
+          orderIndex: ls.position,
+          isCompleted: ls.status === "completed",
+          isLocked: false,
+          lockReason: "ok" as const,
+          gateQuizTitle: null,
+          routePath: contentRoute(courseId, "live_session", ls.id),
+          extra: {
+            startAt: ls.scheduled_start_at,
+            status: ls.status,
+            durationMinutes: ls.duration_minutes,
+          },
+        }));
+      const items = [...uLessons, ...uQuizzes, ...uAssignments, ...uSessions].sort(
         (a, b) => a.orderIndex - b.orderIndex,
       );
       return { id: u.id, title: u.title, position: u.position, items };

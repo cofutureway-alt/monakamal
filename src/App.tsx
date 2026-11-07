@@ -88,6 +88,7 @@ import LeaderboardPage from "./pages/Leaderboard";
 import MyBadges from "./pages/student/MyBadges";
 import MyLevels from "./pages/student/MyLevels";
 import BadgeCelebration from "./components/BadgeCelebration";
+import LiveSessionBanner from "./components/live/LiveSessionBanner";
 import MobileBottomNav from "./components/MobileBottomNav";
 import Books from "./pages/Books";
 import BookDetails from "./pages/BookDetails";
@@ -114,6 +115,7 @@ const App = () => (
       <Sonner position="top-center" richColors closeButton />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
+          <LiveSessionBanner />
           <BadgeCelebration />
           <MobileBottomNav />
           <Routes>

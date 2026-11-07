@@ -31,3 +31,9 @@ verify_jwt = false
 
 [functions.mcp-oauth]
 verify_jwt = false
+
+[functions.zoom-oauth]
+verify_jwt = false
+
+[functions.live-sessions]
+verify_jwt = true

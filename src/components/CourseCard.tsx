@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, Layers, ArrowLeft, ClipboardList, ClipboardCheck, HelpCircle, Tag, Lock } from "lucide-react";
+import { BookOpen, Layers, ArrowLeft, ClipboardList, ClipboardCheck, HelpCircle, Tag, Lock, Radio } from "lucide-react";
 import { useSignedThumbnail } from "@/hooks/use-signed-thumbnail";
 import { EightPointStar } from "@/components/IslamicPatterns";
 import type { PublicCourse } from "@/hooks/use-public-courses";
@@ -55,6 +55,12 @@ export const CourseCard = forwardRef<HTMLDivElement, Props>(function CourseCard(
           )}
           <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
             {isComingSoon && <ComingSoonBadge />}
+            {course.course_type === "live" && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1 rounded-full bg-primary text-primary-foreground shadow">
+                <Radio className="w-3 h-3" />
+                مباشر
+              </span>
+            )}
             {course.stage_name && (
               <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-background/95 backdrop-blur text-foreground border border-border shadow">
                 {course.stage_name}

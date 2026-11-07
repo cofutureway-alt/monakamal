@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, Loader2, Save, UserCircle2, IdCard, Eye, EyeOff, Trophy, FileText, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,12 +19,16 @@ import {
   PASSWORD_KEYS,
 } from "@/lib/registration-fields";
 import { SocialLinksEditor, type SocialLinkItem } from "@/components/SocialLinksEditor";
+import ZoomConnectCard from "@/components/zoom/ZoomConnectCard";
 
 // Fields that should stay read-only on the profile page (identity/security anchors)
 const READ_ONLY_KEYS = new Set(["phone_number", "email"]);
 
 const MyAccount = () => {
   const { user, profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isAdmin = profile?.role === "admin";
   const { fields, loading: loadingFields } = useRegistrationFields();
   const [values, setValues] = useState<Record<string, any>>({});
   const [bio, setBio] = useState<string>("");
@@ -177,6 +182,22 @@ const MyAccount = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Zoom OAuth result (?zoom=connected|error) — toast once, then strip the params. */}
+      {isAdmin && searchParams.get("zoom") && (
+        <ZoomResultToast
+          result={searchParams.get("zoom")!}
+          reason={searchParams.get("reason")}
+          onDone={() => {
+            const next = new URLSearchParams(searchParams);
+            next.delete("zoom");
+            next.delete("reason");
+            setSearchParams(next, { replace: true });
+          }}
+        />
+      )}
+
+      {isAdmin && <ZoomConnectCard />}
 
       {/* Avatar Header */}
       <motion.section
@@ -348,6 +369,27 @@ const MyAccount = () => {
       </motion.section>
     </div>
   );
+};
+
+/** Fires the OAuth return toast exactly once per mount. */
+const ZoomResultToast = ({
+  result,
+  reason,
+  onDone,
+}: {
+  result: string;
+  reason: string | null;
+  onDone: () => void;
+}) => {
+  const fired = useRef(false);
+  useEffect(() => {
+    if (fired.current) return;
+    fired.current = true;
+    if (result === "connected") toast.success("تم ربط حساب Zoom بنجاح");
+    else toast.error(`تعذّر ربط حساب Zoom. حاول مرة أخرى.${reason ? ` (${reason})` : ""}`);
+    onDone();
+  }, [result, reason, onDone]);
+  return null;
 };
 
 export default MyAccount;
