@@ -46,3 +46,13 @@ verify_jwt = false
 
 [functions.live-media]
 verify_jwt = true
+
+[functions.ai-admin]
+verify_jwt = true
+
+# Verifies the JWT itself (guests are added in Phase 8).
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.ai-actions]
+verify_jwt = true
