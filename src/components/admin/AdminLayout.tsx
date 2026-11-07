@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3,
   BookMarked,
+  CalendarDays,
+  Radio,
+  Video,
   BookOpen,
   ChevronLeft,
   ClipboardCheck,
@@ -74,6 +77,15 @@ const nav: NavEntry[] = [
       { to: "/admin/branches", label: "أماكن التواجد (أماكن الشرح)", icon: Landmark },
       { to: "/admin/stages", label: "المراحل", icon: Layers },
       { to: "/admin/subjects", label: "المواد الدراسية", icon: BookMarked },
+    ],
+  },
+  {
+    id: "live",
+    label: "البث المباشر",
+    icon: Radio,
+    children: [
+      { to: "/admin/live-sessions", label: "الجلسات", icon: Video },
+      { to: "/admin/live-calendar", label: "التقويم", icon: CalendarDays },
     ],
   },
   {

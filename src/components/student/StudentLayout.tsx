@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Award, BarChart3, BookOpen, ClipboardEdit, ClipboardList, Home, Layers, LogOut, Menu, ShoppingBag, UserCircle2, Wallet, X } from "lucide-react";
+import { Award, BarChart3, BookOpen, CalendarDays, ClipboardEdit, ClipboardList, Home, Layers, LogOut, Menu, ShoppingBag, UserCircle2, Wallet, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import WalletWidget from "@/components/WalletWidget";
 
 const nav = [
   { to: "/dashboard", label: "دوراتي", icon: BookOpen, end: true },
+  { to: "/dashboard/calendar", label: "التقويم", icon: CalendarDays },
   { to: "/dashboard/wallet", label: "المحفظة", icon: Wallet },
   { to: "/dashboard/quiz-attempts", label: "محاولات اختباراتي", icon: ClipboardList },
   { to: "/dashboard/assignment-submissions", label: "واجباتي", icon: ClipboardEdit },

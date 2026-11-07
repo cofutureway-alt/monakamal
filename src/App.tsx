@@ -87,6 +87,9 @@ import LeaderboardBadges from "./pages/admin/leaderboard/LeaderboardBadges";
 import LeaderboardPage from "./pages/Leaderboard";
 import MyBadges from "./pages/student/MyBadges";
 import MyLevels from "./pages/student/MyLevels";
+import StudentLiveCalendar from "./pages/student/StudentLiveCalendar";
+import AdminLiveCalendar from "./pages/admin/AdminLiveCalendar";
+import AdminLiveSessions from "./pages/admin/AdminLiveSessions";
 import BadgeCelebration from "./components/BadgeCelebration";
 import LiveSessionBanner from "./components/live/LiveSessionBanner";
 import LinkReplacedDialog from "./components/live/LinkReplacedDialog";
@@ -193,6 +196,7 @@ const App = () => (
               <Route path="wallet" element={<MyWallet />} />
               <Route path="badges" element={<MyBadges />} />
               <Route path="levels" element={<MyLevels />} />
+              <Route path="calendar" element={<StudentLiveCalendar />} />
               <Route path="book-orders" element={<MyBookOrders />} />
               <Route path="notifications" element={<NotificationsPage />} />
             </Route>
@@ -227,6 +231,8 @@ const App = () => (
               <Route path="courses/:id/builder" element={<CourseBuilder />} />
               <Route path="stages" element={<AdminStages />} />
               <Route path="subjects" element={<AdminSubjects />} />
+              <Route path="live-sessions" element={<AdminLiveSessions />} />
+              <Route path="live-calendar" element={<AdminLiveCalendar />} />
               <Route path="books" element={<AdminBooks />} />
               <Route path="books/new" element={<AdminBookEditor />} />
               <Route path="books/:id" element={<AdminBookEditor />} />
