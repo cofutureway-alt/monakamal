@@ -1,0 +1,17 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "https://www.miss-mona-kamel.com",
+          "https://miss-mona-kamel.com",
+          "http://localhost:8080"
+        ],
+        "methods": ["GET", "HEAD", "PUT"],
+        "headers": ["*"]
+      },
+      "exposeHeaders": ["ETag", "Content-Range", "Accept-Ranges", "Content-Length"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

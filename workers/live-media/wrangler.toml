@@ -1,0 +1,9 @@
+name = "mona-live-media"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+workers_dev = true
+
+[[r2_buckets]]
+binding = "RECORDINGS"
+bucket_name = "mona-live-recordings"

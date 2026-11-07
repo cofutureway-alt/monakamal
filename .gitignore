@@ -33,3 +33,6 @@ supabase/.temp
 
 .wrangler/
 test-out.txt
+workers/live-media/.dev.vars
+workers/live-media/node_modules
+.secrets.tmp
