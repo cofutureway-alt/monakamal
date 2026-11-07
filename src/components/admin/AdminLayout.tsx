@@ -38,6 +38,7 @@ import {
   Trophy,
   Coins,
   Truck,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -65,6 +66,7 @@ const isGroup = (e: NavEntry): e is GroupItem => (e as GroupItem).children !== u
 
 const nav: NavEntry[] = [
   { to: "/admin", label: "الإحصائيات", icon: BarChart3, end: true },
+  { to: "/admin/ai", label: "المساعد الذكي", icon: Sparkles },
   {
     id: "academics",
     label: "المحتوى التعليمي",

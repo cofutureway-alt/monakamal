@@ -196,6 +196,7 @@ export interface ActionProposalBlock {
   confirm_phrase: string | null;
   expires_at: string;
   client_side?: "lesson_pdf";
+  client_payload?: { lesson_id: string; title: string; outline_markdown: string; course_id?: string };
 }
 
 export interface ReportBlock {
@@ -255,6 +256,7 @@ export interface ConversationRow {
 
 // ---------------------------------------------------------------- conversations (RLS reads)
 export async function listConversations(): Promise<ConversationRow[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ai_* tables are not in the generated types until the migration is applied
   const { data, error } = await (supabase as any)
     .from("ai_conversations")
     .select("id, title, pinned, archived, created_at, updated_at")
@@ -266,6 +268,7 @@ export async function listConversations(): Promise<ConversationRow[]> {
 }
 
 export async function loadMessages(conversationId: string): Promise<StoredMessage[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ai_* tables are not in the generated types until the migration is applied
   const { data, error } = await (supabase as any)
     .from("ai_messages")
     .select("id, role, content, created_at")
@@ -278,6 +281,7 @@ export async function loadMessages(conversationId: string): Promise<StoredMessag
 }
 
 export async function loadActionStates(conversationId: string): Promise<Record<string, ActionState>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ai_* tables are not in the generated types until the migration is applied
   const { data } = await (supabase as any)
     .from("ai_pending_actions")
     .select("id, status, result, error, expires_at")
@@ -296,6 +300,7 @@ export async function loadActionStates(conversationId: string): Promise<Record<s
 }
 
 export async function updateConversation(id: string, patch: Partial<Pick<ConversationRow, "title" | "pinned" | "archived">>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ai_* tables are not in the generated types until the migration is applied
   const { error } = await (supabase as any).from("ai_conversations").update(patch).eq("id", id);
   if (error) throw new AiApiError("UPDATE_FAILED", "تعذّر حفظ التغيير", 500);
 }

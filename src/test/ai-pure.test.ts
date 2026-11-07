@@ -81,3 +81,25 @@ describe("cairo time", () => {
     expect(periodStart("7d", now).toISOString()).toBe("2026-11-01T22:00:00.000Z");
   });
 });
+
+import { parseOutline, pdfFileName } from "@/lib/lesson-pdf";
+
+describe("lesson PDF outline", () => {
+  it("parses headings, bullets, numbered items, paragraphs and gaps", () => {
+    const md = "# العنوان\n\n## الفكرة الأولى\n- **نقطة** مهمة\n2. خطوة ثانية\n\nفقرة [رابط](https://x)";
+    expect(parseOutline(md)).toEqual([
+      { kind: "h1", text: "العنوان" },
+      { kind: "gap" },
+      { kind: "h2", text: "الفكرة الأولى" },
+      { kind: "bullet", marker: "•", text: "نقطة مهمة" },
+      { kind: "bullet", marker: "2.", text: "خطوة ثانية" },
+      { kind: "gap" },
+      { kind: "p", text: "فقرة رابط" },
+    ]);
+  });
+
+  it("makes storage-safe file names", () => {
+    expect(pdfFileName("ملخص: الدرس / الأول?")).toBe("ملخص-الدرس-الأول.pdf");
+    expect(pdfFileName("   ")).toBe("lesson.pdf");
+  });
+});

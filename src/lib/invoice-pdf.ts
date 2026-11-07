@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { loadFontBase64 } from "@/lib/pdf-fonts";
 
 export interface InvoiceData {
   referenceNumber: string;
@@ -13,32 +14,17 @@ export interface InvoiceData {
   platformName?: string;
 }
 
-// -------- Arabic font caching --------
+// -------- Arabic font caching (shared loader: src/lib/pdf-fonts.ts) --------
 let cachedRegular: string | null = null;
 let cachedBold: string | null = null;
-
-async function fetchAsBase64(url: string): Promise<string> {
-  const res = await fetch(url);
-  const buf = await res.arrayBuffer();
-  let binary = "";
-  const bytes = new Uint8Array(buf);
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode.apply(
-      null,
-      Array.from(bytes.subarray(i, i + chunk)),
-    );
-  }
-  return btoa(binary);
-}
 
 async function loadArabicFonts() {
   if (cachedRegular && cachedBold) return;
   const [reg, bold] = await Promise.all([
-    fetchAsBase64(
+    loadFontBase64(
       "https://cdn.jsdelivr.net/npm/@fontsource/amiri@5.0.0/files/amiri-arabic-400-normal.woff",
     ),
-    fetchAsBase64(
+    loadFontBase64(
       "https://cdn.jsdelivr.net/npm/@fontsource/amiri@5.0.0/files/amiri-arabic-700-normal.woff",
     ),
   ]);

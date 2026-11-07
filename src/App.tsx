@@ -40,6 +40,7 @@ import StudentStatistics from "./pages/student/StudentStatistics";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminMcpSettings from "./pages/admin/AdminMcpSettings";
 import AdminAiSettings from "./pages/admin/AdminAiSettings";
+import AdminAiChat from "./pages/admin/AdminAiChat";
 import AdminVideoPlayerSettings from "./pages/admin/AdminVideoPlayerSettings";
 import QuizTake from "./pages/QuizTake";
 import AdminQuizAttempts from "./pages/admin/AdminQuizAttempts";
@@ -244,6 +245,8 @@ const App = () => (
               <Route path="settings" element={<AdminSettings />} />
               <Route path="settings/mcp" element={<AdminMcpSettings />} />
               <Route path="settings/ai" element={<AdminAiSettings />} />
+              <Route path="ai" element={<AdminAiChat />} />
+              <Route path="ai/:conversationId" element={<AdminAiChat />} />
               <Route path="settings/video-player" element={<AdminVideoPlayerSettings />} />
               <Route path="settings/registration-form" element={<AdminRegistrationForm />} />
               <Route path="settings/student-qr" element={<AdminQrSettings />} />

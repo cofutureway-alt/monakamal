@@ -412,6 +412,7 @@ const UnitCard = ({
   onEditLiveSession,
   onCancelLiveSession,
   onDeleteLiveSession,
+  onRefreshLiveSessions,
   onEditLesson,
   onDeleteLesson,
   onEditQuiz,
@@ -431,6 +432,8 @@ const UnitCard = ({
   onEditLiveSession: (s: AdminSessionView) => void;
   onCancelLiveSession: (s: AdminSessionView) => void;
   onDeleteLiveSession: (s: AdminSessionView) => void;
+  /** Reload after start / replace-link / end actions on a session card. */
+  onRefreshLiveSessions: () => void;
   onEditLesson: (l: LessonRecord) => void;
   onDeleteLesson: (l: LessonRecord) => void;
   onEditQuiz: (q: QuizRecord) => void;
@@ -555,7 +558,7 @@ const UnitCard = ({
                       key={`ls-${s.id}`}
                       session={s}
                       courseId={s.course_id}
-                      onRefresh={load}
+                      onRefresh={onRefreshLiveSessions}
                       onEdit={onEditLiveSession}
                       onCancel={onCancelLiveSession}
                       onDelete={onDeleteLiveSession}
@@ -1401,6 +1404,7 @@ const CourseBuilder = () => {
                   onEditLiveSession={openEditLiveSession}
                   onCancelLiveSession={setCancellingSession}
                   onDeleteLiveSession={setDeletingSession}
+                  onRefreshLiveSessions={load}
                   onEditLesson={openEditLesson}
                   onDeleteLesson={setDeletingLesson}
                   onEditQuiz={openEditQuiz}
