@@ -2,6 +2,11 @@
 // Secrets live in the function environment only; tokens live in
 // public.zoom_connection_secrets (RLS on, zero policies → service role only).
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  chooseTokenAfterRefresh,
+  isInvalidGrant,
+  tokenFromParallelRotation,
+} from "./zoom-token.ts";
 
 const ZOOM_OAUTH = "https://zoom.us/oauth";
 const ZOOM_API = "https://api.zoom.us/v2";
@@ -118,25 +123,21 @@ export async function getValidAccessToken(
       .select("access_token");
 
     if (writeError) throw new Error("ZOOM_SECRETS_WRITE_FAILED");
-    if (written && written.length > 0) return fresh.access_token;
-
-    // Someone else rotated first; their token is the current one.
-    const stored = await readStoredToken(service, userId);
-    return stored ?? fresh.access_token;
+    const landed = Boolean(written && written.length > 0);
+    // G3: when our write did not land, a parallel call rotated first; use its
+    // access token string (not the whole stored row).
+    const stored = landed ? null : await readStoredToken(service, userId);
+    return chooseTokenAfterRefresh(landed, stored, fresh.access_token);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     const body = (e as Error & { body?: string }).body ?? "";
 
     // Did a parallel call rotate the refresh token while we were failing?
     const stored = await readStoredToken(service, userId);
-    if (stored && stored.refreshToken !== usedRefresh) return stored.accessToken;
+    const parallel = tokenFromParallelRotation(stored, usedRefresh);
+    if (parallel) return parallel;
 
-    const zoomSaysInvalid =
-      body.includes("invalid_grant") ||
-      body.includes("Invalid Token") ||
-      msg.includes("invalid_grant");
-
-    if (zoomSaysInvalid) {
+    if (isInvalidGrant(msg, body)) {
       await service
         .from("zoom_connections")
         .update({ status: "revoked", updated_at: new Date().toISOString() })

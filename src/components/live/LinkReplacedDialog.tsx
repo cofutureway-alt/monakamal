@@ -14,7 +14,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLiveSessionsRealtime, useStudentUpcomingLiveSessions } from "@/hooks/use-live-sessions";
-import { getLiveSessionJoin, liveErrorMessage, LiveSessionError } from "@/lib/live-sessions-api";
+import {
+  getLiveSessionJoin,
+  getLiveSessionState,
+  liveErrorMessage,
+  LiveSessionError,
+} from "@/lib/live-sessions-api";
 import { openExternalAfter } from "@/lib/open-external";
 
 /**
@@ -46,18 +51,40 @@ const LinkReplacedDialog = () => {
       return;
     }
 
+    const bumped: typeof data = [];
     for (const s of data) {
       const previous = seen.current.get(s.id);
       seen.current.set(s.id, s.link_version);
       if (previous === undefined || s.link_version <= previous) continue;
-
-      const onThisPage = location.pathname.includes(`/learn/live_session/${s.id}`);
-      const isLive = s.status === "live";
-      if (onThisPage || isLive) {
-        setPrompt({ sessionId: s.id, courseId: s.course_id, title: s.title });
-        break;
-      }
+      bumped.push(s);
     }
+    if (!bumped.length) return;
+
+    // G5: only students who actually joined this session (server-side
+    // attendance) or who are looking at its page get the blocking dialog.
+    // Everyone else just has the in-app notification.
+    let cancelled = false;
+    void (async () => {
+      for (const s of bumped) {
+        const onThisPage = location.pathname.includes(`/learn/live_session/${s.id}`);
+        let joined = false;
+        if (!onThisPage) {
+          try {
+            joined = (await getLiveSessionState(s.id)).i_joined;
+          } catch {
+            joined = false;
+          }
+        }
+        if (cancelled) return;
+        if (onThisPage || joined) {
+          setPrompt({ sessionId: s.id, courseId: s.course_id, title: s.title });
+          return;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [data, isAdmin, location.pathname]);
 
   const rejoin = async () => {

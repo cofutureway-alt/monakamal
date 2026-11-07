@@ -40,3 +40,6 @@ workers/live-media/node_modules
 .qa_admin_refresh
 .qa_student_token
 .qa_student_refresh
+
+# Local test fixtures from the media worker
+workers/live-media/live/
