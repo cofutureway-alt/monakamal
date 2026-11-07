@@ -77,7 +77,7 @@ const PlanCards = ({ plans, currentPlanId, pending, onRequested }: Props) => {
                 {[
                   `${p.per_hour} رسالة / ساعة`,
                   `${p.per_day} رسالة / يوم`,
-                  `${p.per_month.toLocaleString("ar-EG")} رسالة / شهر`,
+                  `${p.per_month.toLocaleString("en-US")} رسالة / شهر`,
                 ].map((line) => (
                   <li key={line} className="flex items-center gap-2">
                     <Check className="h-4 w-4 shrink-0 text-primary" />

@@ -13,7 +13,8 @@ import {
 const config = {
   student: { label: "الطلاب", color: "var(--primary)" },
   parent: { label: "أولياء الأمور", color: "var(--accent)" },
-  guest: { label: "الزوار", color: "var(--secondary-foreground)" },
+  // Mid-tone of primary: distinct from students in both light and dark themes.
+  guest: { label: "الزوار", color: "color-mix(in oklch, var(--primary) 45%, var(--background))" },
   admin: { label: "الإدارة", color: "var(--muted-foreground)" },
 } satisfies ChartConfig;
 
@@ -65,7 +66,7 @@ const UsageChart = ({ rows }: { rows: Row[] }) => {
           tickMargin={8}
           minTickGap={24}
           tickFormatter={(v: string) =>
-            new Date(`${v}T12:00:00`).toLocaleDateString("ar-EG", { day: "numeric", month: "short" })
+            new Date(`${v}T12:00:00`).toLocaleDateString("ar-EG-u-nu-latn", { day: "numeric", month: "short" })
           }
         />
         <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />

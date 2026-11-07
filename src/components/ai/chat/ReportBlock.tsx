@@ -42,7 +42,7 @@ const ReportBlock = ({ block }: { block: Block }) => {
           <div key={k.label} className="rounded-xl bg-secondary p-3">
             <div className="text-xs text-muted-foreground">{k.label}</div>
             <div className="mt-1 text-xl font-bold tabular-nums">
-              {typeof k.value === "number" ? k.value.toLocaleString("ar-EG") : k.value}
+              {typeof k.value === "number" ? k.value.toLocaleString("en-US") : k.value}
               {k.unit && <span className="ms-1 text-sm font-medium text-muted-foreground">{k.unit}</span>}
             </div>
           </div>
@@ -96,7 +96,7 @@ const ReportBlock = ({ block }: { block: Block }) => {
               {block.table.rows.map((r, i) => (
                 <tr key={i} className="border-b border-border/40 last:border-0">
                   {r.map((c, j) => (
-                    <td key={j} className="px-2 py-2 tabular-nums">{typeof c === "number" ? c.toLocaleString("ar-EG") : c}</td>
+                    <td key={j} className="px-2 py-2 tabular-nums">{typeof c === "number" ? c.toLocaleString("en-US") : c}</td>
                   ))}
                 </tr>
               ))}

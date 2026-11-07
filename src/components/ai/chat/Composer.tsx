@@ -95,7 +95,7 @@ const Composer = forwardRef<ComposerHandle, Props>(({ busy, disabledReason, onSe
         </div>
         {(text.length >= COUNTER_FROM || tooLong) && (
           <p className={`mt-1 px-2 text-xs tabular-nums ${tooLong ? "text-destructive" : "text-muted-foreground"}`}>
-            {tooLong ? "الرسالة طويلة جداً" : ""} {text.length.toLocaleString("ar-EG")} / {LIMIT.toLocaleString("ar-EG")}
+            {tooLong ? "الرسالة طويلة جداً" : ""} {text.length.toLocaleString("en-US")} / {LIMIT.toLocaleString("en-US")}
           </p>
         )}
       </div>

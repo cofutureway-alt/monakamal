@@ -475,7 +475,7 @@ const generateLessonPdf: WriteTool = {
       fields: [
         { label: "الدرس", after: `${u?.courses?.title ?? ""} / ${lesson!.title}` },
         { label: "عنوان الملف", after: String(a.title) },
-        { label: "المحتوى", after: `${md.split("\n").filter((l) => l.startsWith("#")).length} عناوين، ${md.length.toLocaleString("ar-EG")} حرف` },
+        { label: "المحتوى", after: `${md.split("\n").filter((l) => l.startsWith("#")).length} عناوين، ${md.length.toLocaleString("en-US")} حرف` },
       ],
       client_side: "lesson_pdf",
       client_payload: { lesson_id: lesson!.id, title: String(a.title), outline_markdown: md, course_id: u?.course_id },

@@ -103,7 +103,7 @@ export const str = (description: string, maxLength = 300, minLength = 1): JsonSc
 
 export function egp(piastres: number | null | undefined): string {
   if (piastres === null || piastres === undefined) return "—";
-  return `${(piastres / 100).toLocaleString("ar-EG", { maximumFractionDigits: 2 })} ج.م`;
+  return `${(piastres / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })} ج.م`;
 }
 
 /** Mask a phone number to its last 4 digits. */

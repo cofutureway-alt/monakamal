@@ -421,9 +421,9 @@ const getSalesReport: ReadTool = {
       report: {
         title: `تقرير المبيعات — ${label}`,
         kpis: [
-          { label: "إجمالي المبيعات", value: (total / 100).toLocaleString("ar-EG"), unit: "ج.م" },
+          { label: "إجمالي المبيعات", value: (total / 100).toLocaleString("en-US"), unit: "ج.م" },
           { label: "عدد العمليات", value: rows.length },
-          { label: "متوسط العملية", value: rows.length ? Math.round(total / rows.length / 100).toLocaleString("ar-EG") : 0, unit: "ج.م" },
+          { label: "متوسط العملية", value: rows.length ? Math.round(total / rows.length / 100).toLocaleString("en-US") : 0, unit: "ج.م" },
         ],
         ...(top.length
           ? {

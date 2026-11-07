@@ -107,7 +107,6 @@ import AdminBookOrderDetail from "./pages/admin/AdminBookOrderDetail";
 import MyBookOrders from "./pages/student/MyBookOrders";
 import Branches from "./pages/Branches";
 import AdminBranches from "./pages/admin/AdminBranches";
-import AdminBooks from "./pages/admin/AdminBooks";
 import McpAuthorize from "./pages/McpAuthorize";
 
 

@@ -251,7 +251,7 @@ function GeneralTab({ settings, onSaved }: { settings: AiSettings; onSaved: (s: 
                     رسالة
                   </span>
                 </div>
-                {invalid && <p className="text-xs text-destructive">قيمة بين 0 و {f.max.toLocaleString("ar-EG")}</p>}
+                {invalid && <p className="text-xs text-destructive">قيمة بين 0 و {f.max.toLocaleString("en-US")}</p>}
               </div>
             );
           })}

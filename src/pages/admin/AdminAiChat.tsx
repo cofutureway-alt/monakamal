@@ -123,7 +123,7 @@ const AdminAiChat = () => {
 
   return (
     <div
-      className="-m-4 grid h-[calc(100dvh-4rem-var(--live-banner-h,0px)-96px)] overflow-hidden md:-m-8 md:h-[calc(100dvh-4rem-var(--live-banner-h,0px))] lg:grid-cols-[280px_1fr]"
+      className="-m-4 grid h-[calc(100dvh-4rem-var(--live-banner-h,0px)-96px)] grid-cols-[minmax(0,1fr)] overflow-hidden md:-m-8 md:h-[calc(100dvh-4rem-var(--live-banner-h,0px))] lg:grid-cols-[280px_minmax(0,1fr)]"
       dir="rtl"
     >
       <aside className="hidden border-e border-border/60 bg-card/50 lg:block">{list}</aside>
