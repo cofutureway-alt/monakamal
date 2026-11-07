@@ -1577,6 +1577,109 @@ export type Database = {
           },
         ]
       }
+      live_recordings: {
+        Row: {
+          attempts: number
+          bytes_done: number
+          created_at: string
+          download_token: string | null
+          download_url: string | null
+          file_size: number | null
+          id: string
+          last_error: string | null
+          lesson_id: string | null
+          locked_until: string | null
+          part_index: number | null
+          part_size: number
+          parts: Json
+          r2_key: string | null
+          recording_end: string | null
+          recording_start: string | null
+          recording_type: string | null
+          segment_id: string | null
+          session_id: string
+          source: string
+          status: string
+          updated_at: string
+          upload_id: string | null
+          zoom_file_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          bytes_done?: number
+          created_at?: string
+          download_token?: string | null
+          download_url?: string | null
+          file_size?: number | null
+          id?: string
+          last_error?: string | null
+          lesson_id?: string | null
+          locked_until?: string | null
+          part_index?: number | null
+          part_size?: number
+          parts?: Json
+          r2_key?: string | null
+          recording_end?: string | null
+          recording_start?: string | null
+          recording_type?: string | null
+          segment_id?: string | null
+          session_id: string
+          source: string
+          status?: string
+          updated_at?: string
+          upload_id?: string | null
+          zoom_file_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          bytes_done?: number
+          created_at?: string
+          download_token?: string | null
+          download_url?: string | null
+          file_size?: number | null
+          id?: string
+          last_error?: string | null
+          lesson_id?: string | null
+          locked_until?: string | null
+          part_index?: number | null
+          part_size?: number
+          parts?: Json
+          r2_key?: string | null
+          recording_end?: string | null
+          recording_start?: string | null
+          recording_type?: string | null
+          segment_id?: string | null
+          session_id?: string
+          source?: string
+          status?: string
+          updated_at?: string
+          upload_id?: string | null
+          zoom_file_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_recordings_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_recordings_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "live_session_segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_recordings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_session_attendance: {
         Row: {
           first_joined_at: string
@@ -1812,6 +1915,7 @@ export type Database = {
           host_user_id: string
           id: string
           link_version: number
+          no_recording_reason: string | null
           position: number
           recording_enabled: boolean
           scheduled_start_at: string
@@ -1833,6 +1937,7 @@ export type Database = {
           host_user_id: string
           id?: string
           link_version?: number
+          no_recording_reason?: string | null
           position?: number
           recording_enabled?: boolean
           scheduled_start_at: string
@@ -1854,6 +1959,7 @@ export type Database = {
           host_user_id?: string
           id?: string
           link_version?: number
+          no_recording_reason?: string | null
           position?: number
           recording_enabled?: boolean
           scheduled_start_at?: string
@@ -4911,7 +5017,47 @@ export type Database = {
               user_id: string
             }[]
           }
+      live_recording_claim_next: {
+        Args: never
+        Returns: {
+          attempts: number
+          bytes_done: number
+          created_at: string
+          download_token: string | null
+          download_url: string | null
+          file_size: number | null
+          id: string
+          last_error: string | null
+          lesson_id: string | null
+          locked_until: string | null
+          part_index: number | null
+          part_size: number
+          parts: Json
+          r2_key: string | null
+          recording_end: string | null
+          recording_start: string | null
+          recording_type: string | null
+          segment_id: string | null
+          session_id: string
+          source: string
+          status: string
+          updated_at: string
+          upload_id: string | null
+          zoom_file_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "live_recordings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      live_session_auto_end: { Args: never; Returns: undefined }
       live_session_dispatch_reminders: { Args: never; Returns: undefined }
+      live_session_finalize: {
+        Args: { _session_id: string }
+        Returns: undefined
+      }
       mcp_create_api_key: {
         Args: { p_name: string; p_permissions: Json; p_secret: string }
         Returns: Json
@@ -5178,7 +5324,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "student" | "parent"
-      video_provider: "youtube" | "bunny" | "vimeo"
+      video_provider: "youtube" | "bunny" | "vimeo" | "r2"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5310,7 +5456,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "student", "parent"],
-      video_provider: ["youtube", "bunny", "vimeo"],
+      video_provider: ["youtube", "bunny", "vimeo", "r2"],
     },
   },
 } as const
