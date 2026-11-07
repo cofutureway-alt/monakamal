@@ -11,9 +11,11 @@ import {
   MessageSquare,
   FileText,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 
 const CARDS = [
+  { to: "/admin/settings/ai", icon: Sparkles, title: "الذكاء الاصطناعي", desc: "المساعد الذكي، مزوّدو النماذج، اختبار الاتصال، الباقة وحدود الرسائل." },
   { to: "/admin/settings/mcp", icon: ShieldCheck, title: "إعدادات MCP", desc: "إنشاء مفاتيح وربط أدوات الذكاء الاصطناعي مع صلاحيات دقيقة وسجل عمليات." },
   {
     to: "/admin/settings/video-player",
