@@ -98,19 +98,27 @@ const LiveSessionBanner = () => {
 
   if (!session) return null;
 
-  const isLive = session.status === "live";
+  // F6: `status` only becomes 'live' once a host clicks Start (Phase 4), so a
+  // session that has simply reached its start time must not keep counting down
+  // "00:00" for two hours — treat it as started.
   const cd = countdown(session.scheduled_start_at, now);
+  const started = session.status === "live" || cd.totalMs === 0;
+  const isLive = session.status === "live";
   const mmss = `${String(cd.minutes + cd.hours * 60).padStart(2, "0")}:${String(cd.seconds).padStart(2, "0")}`;
 
   const text = isLive
     ? isAdmin
       ? `مباشر الآن: «${session.title}»`
       : `مباشر الآن: «${session.title}» — ${session.course_title}`
-    : isAdmin
-      ? `جلستك «${session.title}» تبدأ خلال ${mmss}`
-      : `تبدأ جلسة «${session.title}» خلال ${mmss}`;
+    : started
+      ? isAdmin
+        ? `جلستك «${session.title}» بدأت — يمكنك فتحها الآن`
+        : `بدأت الجلسة «${session.title}» — انضم الآن`
+      : isAdmin
+        ? `جلستك «${session.title}» تبدأ خلال ${mmss}`
+        : `تبدأ جلسة «${session.title}» خلال ${mmss}`;
 
-  const cta = isLive ? (isAdmin ? "فتح الجلسة" : "انضم الآن") : isAdmin ? "فتح الجلسة" : "التفاصيل";
+  const cta = isLive || started ? (isAdmin ? "فتح الجلسة" : "انضم الآن") : isAdmin ? "فتح الجلسة" : "التفاصيل";
 
   const target = isAdmin
     ? `/admin/courses/${session.course_id}/builder`
@@ -130,12 +138,14 @@ const LiveSessionBanner = () => {
           exit={reduceMotion ? undefined : { y: -44, opacity: 0 }}
           transition={{ duration: 0.2 }}
           className={`fixed top-0 inset-x-0 z-[60] h-11 flex items-center justify-center gap-3 px-4 text-sm font-medium ${
-            isLive ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"
+            isLive || started
+              ? "bg-destructive text-destructive-foreground"
+              : "bg-accent text-accent-foreground"
           }`}
           role="status"
           dir="rtl"
         >
-          {isLive ? (
+          {isLive || started ? (
             <span className="relative flex h-2 w-2 shrink-0">
               <span className="absolute inline-flex h-full w-full rounded-full bg-current animate-ping" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />

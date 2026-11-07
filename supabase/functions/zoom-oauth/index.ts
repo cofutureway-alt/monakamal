@@ -45,6 +45,14 @@ Deno.serve(async (req) => {
     const payload = await verifyState(state);
     if (!payload) return redirect(REDIRECT("state_invalid"));
 
+    // The state may be up to 10 minutes old; re-check the role before we store
+    // tokens for that user (F5).
+    const { data: stillAdmin } = await service.rpc("has_role", {
+      _user_id: payload.uid,
+      _role: "admin",
+    });
+    if (!stillAdmin) return redirect(REDIRECT("profile_failed"));
+
     let tokens;
     try {
       tokens = await zoomTokenExchange(code);
@@ -157,9 +165,6 @@ Deno.serve(async (req) => {
     await service.from("zoom_connections").delete().eq("user_id", userRes.user.id);
     return json({ ok: true });
   }
-
-  // Unused import guard for tree-shaking clarity (zoomFetch/zoomJson are used above).
-  void zoomFetch;
 
   return json({ error: "NOT_FOUND" }, 404);
 });

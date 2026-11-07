@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -16,14 +16,17 @@ export const LIVE_SESSIONS_KEY = "live-sessions";
 
 const REFETCH_MS = 60_000;
 
-export function useLiveSessionState(sessionId: string | undefined) {
-  return useQuery<LiveSessionState>({
-    queryKey: [LIVE_SESSIONS_KEY, "state", sessionId],
-    queryFn: () => getLiveSessionState(sessionId!),
-    enabled: Boolean(sessionId),
-    refetchInterval: REFETCH_MS,
-    retry: false,
-  });
+/**
+ * Stable query keys. The window bounds must NOT live in the key: the banner
+ * re-renders every second and would create a fresh query (and RPC) each time.
+ * Bounds are computed inside `queryFn` instead.
+ */
+export function liveUpcomingKey(kind: "student" | "admin") {
+  return [LIVE_SESSIONS_KEY, `${kind}-upcoming`] as const;
+}
+
+export function liveSessionStateKey(sessionId: string | undefined) {
+  return [LIVE_SESSIONS_KEY, "state", sessionId] as const;
 }
 
 function windowBounds(fromHoursAgo: number, toHoursAhead: number) {
@@ -34,14 +37,26 @@ function windowBounds(fromHoursAgo: number, toHoursAhead: number) {
   };
 }
 
+export function useLiveSessionState(sessionId: string | undefined, refetchMs = REFETCH_MS) {
+  return useQuery<LiveSessionState>({
+    queryKey: liveSessionStateKey(sessionId),
+    queryFn: () => getLiveSessionState(sessionId!),
+    enabled: Boolean(sessionId),
+    refetchInterval: refetchMs,
+    retry: false,
+  });
+}
+
 /** Upcoming sessions for the logged-in student (7-day horizon). */
 export function useStudentUpcomingLiveSessions(enabled = true) {
   const { profile } = useAuth();
   const isAdmin = profile?.role === "admin";
-  const { from, to } = windowBounds(8, 24 * 7);
   return useQuery<UpcomingLiveSession[]>({
-    queryKey: [LIVE_SESSIONS_KEY, "student-upcoming", from, to],
-    queryFn: () => listStudentUpcoming(from, to),
+    queryKey: liveUpcomingKey("student"),
+    queryFn: () => {
+      const { from, to } = windowBounds(8, 24 * 7);
+      return listStudentUpcoming(from, to);
+    },
     enabled: enabled && !isAdmin,
     refetchInterval: REFETCH_MS,
     retry: false,
@@ -52,10 +67,12 @@ export function useStudentUpcomingLiveSessions(enabled = true) {
 export function useAdminUpcomingLiveSessions(enabled = true) {
   const { profile } = useAuth();
   const isAdmin = profile?.role === "admin";
-  const { from, to } = windowBounds(8, 24 * 7);
   return useQuery<AdminUpcomingLiveSession[]>({
-    queryKey: [LIVE_SESSIONS_KEY, "admin-upcoming", from, to],
-    queryFn: () => listAdminUpcoming(from, to),
+    queryKey: liveUpcomingKey("admin"),
+    queryFn: () => {
+      const { from, to } = windowBounds(8, 24 * 7);
+      return listAdminUpcoming(from, to);
+    },
     enabled: enabled && isAdmin,
     refetchInterval: REFETCH_MS,
     retry: false,
@@ -74,9 +91,7 @@ export function useLiveSessionsRealtime(enabled = true) {
   useEffect(() => {
     if (!enabled || !user) return;
     const topic = `live-sessions-${user.id}-${
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : Date.now()
+      typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Date.now()
     }`;
 
     const channel = supabase

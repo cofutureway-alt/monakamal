@@ -37,10 +37,22 @@ const ARABIC_ERRORS: Record<string, string> = {
   ZOOM_UPDATE_FAILED: "تعذّر تحديث اجتماع Zoom.",
   SESSION_NOT_SCHEDULED: "لا يمكن تعديل جلسة بدأت بالفعل",
   SESSION_NOT_DELETABLE: "لا يمكن حذف جلسة بدأت بالفعل",
+  SESSION_NOT_CANCELLABLE: "لا يمكن إلغاء جلسة انتهت",
 };
 
 function fail(code: string, status: number, detail?: string) {
   return json({ error: code, message_ar: ARABIC_ERRORS[code] ?? code, message: detail ?? code }, status);
+}
+
+/** Best-effort Zoom meeting cleanup on a rollback path (F8). */
+async function discardZoomMeeting(service: any, hostId: string, meetingId: unknown) {
+  if (meetingId === null || meetingId === undefined) return;
+  try {
+    await zoomFetch(service, hostId, `/meetings/${meetingId}`, { method: "DELETE" });
+  } catch {
+    // Orphaned at Zoom is worse than silent here, but the local failure is the
+    // one the caller must see; the meeting expires on its own.
+  }
 }
 
 Deno.serve(async (req) => {
@@ -217,6 +229,7 @@ Deno.serve(async (req) => {
       .single<SessionRow>();
 
     if (sessionError || !session) {
+      await discardZoomMeeting(service, host_user_id, meeting.id);
       if (createdUnitId) await service.from("units").delete().eq("id", createdUnitId);
       return fail("SESSION_CREATE_FAILED", 422, sessionError?.message);
     }
@@ -238,6 +251,8 @@ Deno.serve(async (req) => {
 
     if (segmentError || !segment) {
       await service.from("live_sessions").delete().eq("id", session.id);
+      if (createdUnitId) await service.from("units").delete().eq("id", createdUnitId);
+      await discardZoomMeeting(service, host_user_id, meeting.id);
       return fail("SEGMENT_CREATE_FAILED", 422, segmentError?.message);
     }
 
@@ -382,6 +397,10 @@ Deno.serve(async (req) => {
       .eq("id", session_id)
       .maybeSingle<SessionRow>();
     if (!session) return fail("SESSION_NOT_FOUND", 404);
+    // Only a session that has not finished can be cancelled (F9).
+    if (session.status !== "scheduled" && session.status !== "live") {
+      return fail("SESSION_NOT_CANCELLABLE", 409);
+    }
 
     const { data: segment } = await service
       .from("live_session_segments")

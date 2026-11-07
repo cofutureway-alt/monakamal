@@ -14,6 +14,7 @@ import {
 } from "@/lib/live-sessions-api";
 import { countdown, formatCairo, serverNow, serverOffsetMs } from "@/lib/cairo-time";
 import { buildLiveSessionIcs, downloadIcs } from "@/lib/ics";
+import { openExternalAfter } from "@/lib/open-external";
 import LiveStatusPill from "./LiveStatusPill";
 import CountdownTiles from "./CountdownTiles";
 
@@ -55,7 +56,7 @@ function FileRow({ file }: { file: LiveSessionFileMeta }) {
 const LiveSessionPanel = ({ sessionId, courseId, courseTitle }: Props) => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === "admin";
-  const { data, isLoading, error } = useLiveSessionState(sessionId);
+  const { data, isLoading, error, refetch } = useLiveSessionState(sessionId);
 
   const [, setTick] = useState(0);
   const [joining, setJoining] = useState(false);
@@ -91,13 +92,28 @@ const LiveSessionPanel = ({ sessionId, courseId, courseTitle }: Props) => {
     setAutoDialogOpen(true);
   }, [openNow, data?.id, data?.link_version]);
 
+  // F3: the moment the countdown reaches zero, stop waiting for the 60 s poll.
+  // Poll every 5 s (max ~2 min) until the server flips `can_join`.
+  const fastTries = useRef(0);
+  useEffect(() => {
+    if (!data || !cd) return;
+    if (cd.totalMs > 0 || data.can_join || data.status !== "scheduled") return;
+    if (fastTries.current >= 24) return;
+
+    const id = window.setTimeout(() => {
+      fastTries.current += 1;
+      void refetch();
+    }, 5000);
+    return () => window.clearTimeout(id);
+  }, [data, cd?.totalMs, refetch]);
+
   const join = async () => {
     setJoining(true);
     setBlockedUrl(null);
     try {
-      const payload = await getLiveSessionJoin(sessionId);
-      const win = window.open(payload.join_url, "_blank", "noopener,noreferrer");
-      if (!win) setBlockedUrl(payload.join_url);
+      // F4: open the tab synchronously, then navigate it once we have the URL.
+      const result = await openExternalAfter(async () => (await getLiveSessionJoin(sessionId)).join_url);
+      if (result.blocked && result.url) setBlockedUrl(result.url);
       setAutoDialogOpen(false);
     } catch (e) {
       const code = e instanceof LiveSessionError ? e.code : "UNKNOWN";

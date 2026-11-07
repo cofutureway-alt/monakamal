@@ -72,7 +72,16 @@ interface SecretRow {
 
 /**
  * Return a usable access token for `userId`, refreshing + persisting the rotated
- * pair when it is about to expire. Marks the connection revoked on invalid_grant.
+ * pair when it is about to expire.
+ *
+ * Concurrency (F2): Zoom rotates the refresh token on every refresh, so two
+ * parallel refreshes would make the second one fail with invalid_grant even
+ * though nothing is wrong. Two guards:
+ *   1. the write is a compare-and-swap on the refresh token we read;
+ *   2. on failure we re-read the row — if the token changed, a parallel call
+ *      already won and its access token is valid, so we use that.
+ * The connection is marked revoked only when Zoom says invalid_grant *and* the
+ * stored row is still the one we tried.
  */
 export async function getValidAccessToken(
   service: SupabaseClient,
@@ -92,9 +101,11 @@ export async function getValidAccessToken(
   const needsRefresh = opts.force === true || expiresAt < Date.now() + 60_000;
   if (!needsRefresh) return row.access_token;
 
+  const usedRefresh = row.refresh_token;
+
   try {
-    const fresh = await zoomRefresh(row.refresh_token);
-    const { error: writeError } = await service
+    const fresh = await zoomRefresh(usedRefresh);
+    const { data: written, error: writeError } = await service
       .from("zoom_connection_secrets")
       .update({
         access_token: fresh.access_token,
@@ -102,20 +113,51 @@ export async function getValidAccessToken(
         expires_at: new Date(Date.now() + fresh.expires_in * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .eq("refresh_token", usedRefresh)
+      .select("access_token");
+
     if (writeError) throw new Error("ZOOM_SECRETS_WRITE_FAILED");
-    return fresh.access_token;
+    if (written && written.length > 0) return fresh.access_token;
+
+    // Someone else rotated first; their token is the current one.
+    const stored = await readStoredToken(service, userId);
+    return stored ?? fresh.access_token;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes("invalid_grant") || msg.includes("ZOOM_REFRESH_FAILED:400")) {
+    const body = (e as Error & { body?: string }).body ?? "";
+
+    // Did a parallel call rotate the refresh token while we were failing?
+    const stored = await readStoredToken(service, userId);
+    if (stored && stored.refreshToken !== usedRefresh) return stored.accessToken;
+
+    const zoomSaysInvalid =
+      body.includes("invalid_grant") ||
+      body.includes("Invalid Token") ||
+      msg.includes("invalid_grant");
+
+    if (zoomSaysInvalid) {
       await service
         .from("zoom_connections")
         .update({ status: "revoked", updated_at: new Date().toISOString() })
         .eq("user_id", userId);
       throw new Error("ZOOM_REVOKED");
     }
-    throw e instanceof Error ? e : new Error(msg);
+    throw new Error("ZOOM_REFRESH_FAILED");
   }
+}
+
+async function readStoredToken(
+  service: SupabaseClient,
+  userId: string,
+): Promise<{ accessToken: string; refreshToken: string } | null> {
+  const { data } = await service
+    .from("zoom_connection_secrets")
+    .select("access_token, refresh_token")
+    .eq("user_id", userId)
+    .maybeSingle<Pick<SecretRow, "access_token" | "refresh_token">>();
+  if (!data) return null;
+  return { accessToken: data.access_token, refreshToken: data.refresh_token };
 }
 
 /** Authenticated Zoom REST call; retries once with a forced refresh on 401. */
