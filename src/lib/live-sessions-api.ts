@@ -226,6 +226,62 @@ export async function deleteLiveSession(sessionId: string): Promise<void> {
   await invokeLiveSessions({ action: "delete", session_id: sessionId });
 }
 
+// ---------------------------------------------------------------------------
+// Phase 4 host controls
+// ---------------------------------------------------------------------------
+export async function startLiveSession(
+  sessionId: string,
+): Promise<{ start_url: string; session: LiveSessionRow }> {
+  return invokeLiveSessions<{ start_url: string; session: LiveSessionRow }>({
+    action: "start",
+    session_id: sessionId,
+  });
+}
+
+export type ReplaceReason = "disconnect" | "time_limit" | "technical" | "other";
+
+export async function replaceLiveSessionLink(input: {
+  session_id: string;
+  mode: "zoom_new" | "manual";
+  manual_url?: string;
+  reason: ReplaceReason;
+}): Promise<{ start_url: string; segment_index: number; link_version: number }> {
+  return invokeLiveSessions({ action: "replace_link", ...input });
+}
+
+export async function endLiveSession(sessionId: string): Promise<void> {
+  await invokeLiveSessions({ action: "end", session_id: sessionId });
+}
+
+export interface RangeLiveSession extends UpcomingLiveSession {
+  host_user_id: string;
+  host_name: string | null;
+  segment_count?: number;
+  attendee_count?: number;
+}
+
+export async function listAdminRange(
+  from: string,
+  to: string,
+  filters: { course?: string | null; host?: string | null; status?: string | null } = {},
+): Promise<RangeLiveSession[]> {
+  const { data, error } = await supabase.rpc("admin_live_sessions_range", {
+    _from: from,
+    _to: to,
+    _course: filters.course ?? null,
+    _host: filters.host ?? null,
+    _status: filters.status ?? null,
+  });
+  if (error) throw new LiveSessionError(rpcCode(error.message));
+  return (data ?? []) as unknown as RangeLiveSession[];
+}
+
+export async function listStudentRange(from: string, to: string): Promise<UpcomingLiveSession[]> {
+  const { data, error } = await supabase.rpc("student_live_sessions_range", { _from: from, _to: to });
+  if (error) throw new LiveSessionError(rpcCode(error.message));
+  return (data ?? []) as unknown as UpcomingLiveSession[];
+}
+
 export async function listZoomHosts(): Promise<ZoomHost[]> {
   const { hosts } = await invokeLiveSessions<{ hosts: ZoomHost[] }>({ action: "host_admins" });
   return hosts ?? [];

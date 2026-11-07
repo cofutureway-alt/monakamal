@@ -89,6 +89,7 @@ import MyBadges from "./pages/student/MyBadges";
 import MyLevels from "./pages/student/MyLevels";
 import BadgeCelebration from "./components/BadgeCelebration";
 import LiveSessionBanner from "./components/live/LiveSessionBanner";
+import LinkReplacedDialog from "./components/live/LinkReplacedDialog";
 import MobileBottomNav from "./components/MobileBottomNav";
 import Books from "./pages/Books";
 import BookDetails from "./pages/BookDetails";
@@ -116,6 +117,7 @@ const App = () => (
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <LiveSessionBanner />
+          <LinkReplacedDialog />
           <BadgeCelebration />
           <MobileBottomNav />
           <Routes>

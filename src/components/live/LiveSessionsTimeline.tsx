@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { CalendarPlus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatCairo } from "@/lib/cairo-time";
+import { LIVE_SESSIONS_KEY } from "@/hooks/use-live-sessions";
 import type { AdminSessionView } from "./LiveSessionAdminCard";
 import LiveSessionAdminCard from "./LiveSessionAdminCard";
 
@@ -24,6 +26,10 @@ const DOT_COLOR: Record<string, string> = {
 
 /** Chronological timeline of every session in a live course, grouped by Cairo month. */
 const LiveSessionsTimeline = ({ sessions, courseId, onAdd, onEdit, onCancel, onDelete }: Props) => {
+  const queryClient = useQueryClient();
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: [LIVE_SESSIONS_KEY] });
+  };
   const sorted = [...sessions].sort(
     (a, b) => new Date(a.scheduled_start_at).getTime() - new Date(b.scheduled_start_at).getTime(),
   );
@@ -69,6 +75,7 @@ const LiveSessionsTimeline = ({ sessions, courseId, onAdd, onEdit, onCancel, onD
                   <LiveSessionAdminCard
                     session={s}
                     courseId={courseId}
+                    onRefresh={refresh}
                     onEdit={onEdit}
                     onCancel={onCancel}
                     onDelete={onDelete}

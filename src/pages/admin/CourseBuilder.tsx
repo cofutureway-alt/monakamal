@@ -555,6 +555,7 @@ const UnitCard = ({
                       key={`ls-${s.id}`}
                       session={s}
                       courseId={s.course_id}
+                      onRefresh={load}
                       onEdit={onEditLiveSession}
                       onCancel={onCancelLiveSession}
                       onDelete={onDeleteLiveSession}

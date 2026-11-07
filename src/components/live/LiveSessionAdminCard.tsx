@@ -1,4 +1,4 @@
-import { Copy, Files, MoreVertical, Radio, Users } from "lucide-react";
+import { Copy, Files, MoreVertical, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,10 +7,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState } from "react";
 import LiveRecordingsTab from "./LiveRecordingsTab";
+import StartMeetingButton from "./StartMeetingButton";
 import { formatCairo } from "@/lib/cairo-time";
 import { liveErrorMessage, type LiveSessionRow } from "@/lib/live-sessions-api";
 import LiveStatusPill from "./LiveStatusPill";
@@ -24,12 +24,13 @@ export interface AdminSessionView extends LiveSessionRow {
 interface Props {
   session: AdminSessionView;
   courseId: string;
+  onRefresh?: () => void;
   onEdit: (session: AdminSessionView) => void;
   onCancel: (session: AdminSessionView) => void;
   onDelete: (session: AdminSessionView) => void;
 }
 
-const LiveSessionAdminCard = ({ session, courseId, onEdit, onCancel, onDelete }: Props) => {
+const LiveSessionAdminCard = ({ session, courseId, onRefresh, onEdit, onCancel, onDelete }: Props) => {
   const start = new Date(session.scheduled_start_at);
   const dayNumber = formatCairo(start, "date").split(" ")[0];
   const shortMonth = formatCairo(start, "monthYear").split(" ")[0];
@@ -63,17 +64,7 @@ const LiveSessionAdminCard = ({ session, courseId, onEdit, onCancel, onDelete }:
           {session.host_name ? ` · المضيف: ${session.host_name}` : ""}
         </div>
         <div className="mt-2 flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                {/* TODO(phase4): start / replace-link actions land in Phase 4. */}
-                <Button size="sm" variant="outline" disabled>
-                  <Radio className="h-4 w-4" /> ابدأ الجلسة
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>سيتم تفعيله في مرحلة لاحقة</TooltipContent>
-          </Tooltip>
+          <StartMeetingButton session={session} onChanged={onRefresh ?? (() => {})} />
           {(session.file_count ?? 0) > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
               <Files className="h-3 w-3" /> {session.file_count}

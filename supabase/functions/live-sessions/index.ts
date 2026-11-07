@@ -38,6 +38,9 @@ const ARABIC_ERRORS: Record<string, string> = {
   SESSION_NOT_SCHEDULED: "لا يمكن تعديل جلسة بدأت بالفعل",
   SESSION_NOT_DELETABLE: "لا يمكن حذف جلسة بدأت بالفعل",
   SESSION_NOT_CANCELLABLE: "لا يمكن إلغاء جلسة انتهت",
+  START_NOT_AVAILABLE: "لا يمكن بدء الجلسة الآن",
+  SESSION_NOT_LIVE: "الجلسة ليست مباشرة",
+  INVALID_URL: "رابط Zoom غير صالح",
 };
 
 function fail(code: string, status: number, detail?: string) {
@@ -460,6 +463,296 @@ Deno.serve(async (req) => {
     }
 
     return json({ session: updated });
+  }
+
+  // ---------------------------------------------------------------- start
+  if (action === "start") {
+    const { session_id } = body;
+    if (!session_id) return fail("MISSING_FIELDS", 400);
+
+    const { data: session } = await service
+      .from("live_sessions")
+      .select("*")
+      .eq("id", session_id)
+      .maybeSingle<SessionRow>();
+    if (!session) return fail("SESSION_NOT_FOUND", 404);
+    if (session.status !== "scheduled" && session.status !== "live") {
+      return fail("START_NOT_AVAILABLE", 409);
+    }
+
+    const start = new Date(session.scheduled_start_at).getTime();
+    const windowEnd = start + session.duration_minutes * 60_000 + 120 * 60_000;
+    if (Date.now() < start - 10 * 60_000 || Date.now() > windowEnd) {
+      return fail("START_NOT_AVAILABLE", 409);
+    }
+
+    const { data: segment } = await service
+      .from("live_session_segments")
+      .select("id, source, zoom_meeting_id, join_url")
+      .eq("session_id", session_id)
+      .order("segment_index", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!segment) return fail("SESSION_NOT_FOUND", 404);
+
+    let startUrl = segment.join_url;
+
+    if (segment.source === "zoom_api" && segment.zoom_meeting_id) {
+      // Always refetch: Zoom start URLs carry a short-lived zak token.
+      try {
+        const res = await zoomFetch(
+          service,
+          session.host_user_id,
+          `/meetings/${segment.zoom_meeting_id}`,
+          { method: "GET" },
+        );
+        const meeting = await zoomJson<{ start_url?: string }>(res, "ZOOM_START_FAILED");
+        if (meeting.start_url) {
+          startUrl = meeting.start_url;
+          await service.from("live_session_secrets").upsert(
+            {
+              segment_id: segment.id,
+              start_url: meeting.start_url,
+              start_url_fetched_at: new Date().toISOString(),
+            },
+            { onConflict: "segment_id" },
+          );
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.includes("ZOOM_REVOKED")) return fail("ZOOM_REVOKED", 409);
+        if (msg.includes("ZOOM_NOT_CONNECTED")) return fail("ZOOM_NOT_CONNECTED", 400);
+        return fail("ZOOM_START_FAILED", 422, msg);
+      }
+    }
+
+    const nowIso = new Date().toISOString();
+    const { data: updated } = await service
+      .from("live_sessions")
+      .update({ status: "live", started_at: session.started_at ?? nowIso })
+      .eq("id", session_id)
+      .select("*")
+      .single<SessionRow>();
+
+    await service
+      .from("live_session_segments")
+      .update({ started_at: nowIso })
+      .eq("id", segment.id)
+      .is("started_at", null);
+
+    // Same dedupe key the webhook uses, so a start+webhook pair notifies once.
+    const { data: logged } = await service
+      .from("live_session_notification_log")
+      .insert({ session_id, kind: "started" })
+      .select("session_id");
+    if (logged && logged.length > 0) {
+      const { data: enrollments } = await service
+        .from("enrollments")
+        .select("user_id")
+        .eq("course_id", session.course_id);
+      if (enrollments?.length) {
+        await service.from("notifications").insert(
+          enrollments.map((e: { user_id: string }) => ({
+            user_id: e.user_id,
+            type: "live_session_started",
+            title: "بدأت الجلسة المباشرة",
+            body: session.title,
+            template_data: { session_id, course_id: session.course_id },
+            action_url: `/courses/${session.course_id}/learn/live_session/${session_id}`,
+            related_entity_type: "live_session",
+            related_entity_id: session_id,
+          })),
+        );
+      }
+    }
+
+    return json({ start_url: startUrl, session: updated });
+  }
+
+  // ---------------------------------------------------------- replace_link
+  if (action === "replace_link") {
+    const { session_id, mode, manual_url, reason } = body;
+    if (!session_id || !mode) return fail("MISSING_FIELDS", 400);
+
+    const { data: session } = await service
+      .from("live_sessions")
+      .select("*")
+      .eq("id", session_id)
+      .maybeSingle<SessionRow>();
+    if (!session) return fail("SESSION_NOT_FOUND", 404);
+    if (session.status !== "live") return fail("SESSION_NOT_LIVE", 409);
+
+    let joinUrl = "";
+    let password: string | null = null;
+    let zoomMeetingId: number | null = null;
+    let zoomMeetingUuid: string | null = null;
+    let startUrl: string | null = null;
+    let source: "zoom_api" | "manual_url" = "manual_url";
+
+    if (mode === "zoom_new") {
+      try {
+        const res = await zoomFetch(service, session.host_user_id, "/users/me/meetings", {
+          method: "POST",
+          body: JSON.stringify({
+            topic: session.title,
+            type: 1, // instant meeting
+            timezone: "Africa/Cairo",
+            agenda: session.description ?? undefined,
+            settings: {
+              join_before_host: false,
+              waiting_room: false,
+              mute_upon_entry: true,
+              approval_type: 2,
+              auto_recording: session.recording_enabled ? "cloud" : "none",
+              meeting_authentication: false,
+            },
+          }),
+        });
+        const meeting = await zoomJson<{
+          id?: number;
+          uuid?: string;
+          join_url: string;
+          password?: string;
+          start_url?: string;
+        }>(res, "ZOOM_CREATE_FAILED");
+        joinUrl = meeting.join_url;
+        password = meeting.password ?? null;
+        zoomMeetingId = meeting.id ?? null;
+        zoomMeetingUuid = meeting.uuid ?? null;
+        startUrl = meeting.start_url ?? null;
+        source = "zoom_api";
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.includes("ZOOM_REVOKED")) return fail("ZOOM_REVOKED", 409);
+        if (msg.includes("ZOOM_NOT_CONNECTED")) return fail("ZOOM_NOT_CONNECTED", 400);
+        return fail("ZOOM_CREATE_FAILED", 422, msg);
+      }
+    } else if (mode === "manual") {
+      const url = String(manual_url ?? "").trim();
+      const zoomUrl = /^https:\/\/([a-z0-9-]+\.)?zoom\.us\/(j|w|my)\/[A-Za-z0-9?=&._-]+$/;
+      if (!zoomUrl.test(url)) return fail("INVALID_URL", 400);
+      joinUrl = url;
+      source = "manual_url";
+    } else {
+      return fail("INVALID_MODE", 400);
+    }
+
+    const { data: last } = await service
+      .from("live_session_segments")
+      .select("segment_index")
+      .eq("session_id", session_id)
+      .order("segment_index", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextIndex = (last?.segment_index ?? 0) + 1;
+
+    // Order matters: close the old segment, add the new one, move the pointer.
+    await service
+      .from("live_session_segments")
+      .update({ ended_at: new Date().toISOString() })
+      .eq("session_id", session_id)
+      .is("ended_at", null);
+
+    const { data: segment, error: segErr } = await service
+      .from("live_session_segments")
+      .insert({
+        session_id,
+        segment_index: nextIndex,
+        source,
+        zoom_meeting_id: zoomMeetingId,
+        zoom_meeting_uuid: zoomMeetingUuid,
+        join_url: joinUrl,
+        password,
+        replace_reason: reason ?? null,
+        started_at: new Date().toISOString(),
+        created_by: userRes.user.id,
+      })
+      .select("id")
+      .single();
+    if (segErr || !segment) return fail("SEGMENT_CREATE_FAILED", 422, segErr?.message);
+
+    if (startUrl) {
+      await service.from("live_session_secrets").insert({
+        segment_id: segment.id,
+        start_url: startUrl,
+        start_url_fetched_at: new Date().toISOString(),
+      });
+    }
+
+    const nextVersion = session.link_version + 1;
+    const { data: updated } = await service
+      .from("live_sessions")
+      .update({ current_segment_id: segment.id, link_version: nextVersion })
+      .eq("id", session_id)
+      .select("*")
+      .single<SessionRow>();
+
+    // No dedupe here: every replacement must notify, by design.
+    const { data: enrollments } = await service
+      .from("enrollments")
+      .select("user_id")
+      .eq("course_id", session.course_id);
+    if (enrollments?.length) {
+      await service.from("notifications").insert(
+        enrollments.map((e: { user_id: string }) => ({
+          user_id: e.user_id,
+          type: "live_session_link_replaced",
+          title: "تم تحديث رابط البث",
+          body: session.title,
+          template_data: {
+            session_id,
+            course_id: session.course_id,
+            link_version: updated?.link_version ?? nextVersion,
+          },
+          action_url: `/courses/${session.course_id}/learn/live_session/${session_id}`,
+          related_entity_type: "live_session",
+          related_entity_id: session_id,
+        })),
+      );
+    }
+
+    return json({
+      start_url: startUrl ?? joinUrl,
+      segment_index: nextIndex,
+      link_version: updated?.link_version ?? nextVersion,
+    });
+  }
+
+  // ------------------------------------------------------------------ end
+  if (action === "end") {
+    const { session_id } = body;
+    if (!session_id) return fail("MISSING_FIELDS", 400);
+
+    const { data: session } = await service
+      .from("live_sessions")
+      .select("*")
+      .eq("id", session_id)
+      .maybeSingle<SessionRow>();
+    if (!session) return fail("SESSION_NOT_FOUND", 404);
+
+    const startedPast =
+      session.status === "scheduled" &&
+      Date.now() >= new Date(session.scheduled_start_at).getTime();
+    if (session.status !== "live" && !startedPast) {
+      return fail("SESSION_NOT_LIVE", 409);
+    }
+
+    const nowIso = new Date().toISOString();
+    await service
+      .from("live_sessions")
+      .update({ status: "ended", ended_at: nowIso })
+      .eq("id", session_id);
+
+    await service
+      .from("live_session_segments")
+      .update({ ended_at: nowIso })
+      .eq("session_id", session_id)
+      .is("ended_at", null);
+
+    // Returns early while any recording is still moving.
+    await service.rpc("live_session_finalize", { _session_id: session_id });
+    return json({ ok: true });
   }
 
   // --------------------------------------------------------------- delete

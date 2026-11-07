@@ -4494,6 +4494,31 @@ export type Database = {
           wallet_id: string
         }[]
       }
+      admin_live_sessions_range: {
+        Args: {
+          _course?: string
+          _from: string
+          _host?: string
+          _status?: string
+          _to: string
+        }
+        Returns: {
+          attendee_count: number
+          course_id: string
+          course_thumbnail_url: string
+          course_title: string
+          duration_minutes: number
+          host_name: string
+          host_user_id: string
+          id: string
+          link_version: number
+          scheduled_start_at: string
+          segment_count: number
+          status: string
+          title: string
+          unit_id: string
+        }[]
+      }
       admin_mark_refund_error: {
         Args: { p_error: string; p_request_id: string }
         Returns: Json
@@ -5257,6 +5282,21 @@ export type Database = {
           status: string
           topup_amount_piastres: number
           transaction_id: string
+        }[]
+      }
+      student_live_sessions_range: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          course_id: string
+          course_thumbnail_url: string
+          course_title: string
+          duration_minutes: number
+          id: string
+          link_version: number
+          scheduled_start_at: string
+          status: string
+          title: string
+          unit_id: string
         }[]
       }
       student_next_level: {
