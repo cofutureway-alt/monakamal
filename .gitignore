@@ -43,3 +43,4 @@ workers/live-media/node_modules
 
 # Local test fixtures from the media worker
 workers/live-media/live/
+deno.lock
