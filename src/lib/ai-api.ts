@@ -107,13 +107,37 @@ export class AiApiError extends Error {
 // ---------------------------------------------------------------- transport
 const FN_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
-async function authHeaders(): Promise<Record<string, string>> {
+async function authHeaders(guestId?: string): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
   return {
     "Content-Type": "application/json",
     apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    Authorization: `Bearer ${data.session?.access_token ?? ""}`,
+    // Signed-in users send their JWT; visitors send only the anonymous id.
+    ...(token ? { Authorization: `Bearer ${token}` } : guestId ? { "x-ai-guest": guestId } : {}),
   };
+}
+
+/** Anonymous visitor id for the chat widget (per browser; regenerated if storage is unavailable). */
+export function getGuestId(): string {
+  const KEY = "ai_gid";
+  try {
+    const v = localStorage.getItem(KEY);
+    if (v && /^[0-9a-f-]{36}$/i.test(v)) return v;
+    const id = crypto.randomUUID();
+    localStorage.setItem(KEY, id);
+    return id;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
+/** Whether the public widget should render (chatbot enabled + a provider set). */
+export async function getPublicAiConfig(): Promise<{ chatbot_enabled: boolean }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- rpc not in generated types yet
+  const { data, error } = await (supabase as any).rpc("ai_public_config");
+  if (error || !data) return { chatbot_enabled: false };
+  return data as { chatbot_enabled: boolean };
 }
 
 async function invoke<T>(fn: string, body: Record<string, unknown>): Promise<T> {
@@ -333,12 +357,13 @@ export async function streamChat(
   input: { conversation_id?: string | null; text: string; choice_id?: string },
   onEvent: (e: ChatStreamEvent) => void,
   signal?: AbortSignal,
+  guestId?: string,
 ): Promise<void> {
   let res: Response;
   try {
     res = await fetch(`${FN_BASE}/ai-chat`, {
       method: "POST",
-      headers: await authHeaders(),
+      headers: await authHeaders(guestId),
       body: JSON.stringify({
         conversation_id: input.conversation_id ?? null,
         message: { text: input.text, choice_id: input.choice_id },
@@ -377,4 +402,9 @@ export async function streamChat(
 /** Quota-style errors that must show the AiUnavailableDialog instead of an inline error. */
 export function isQuotaError(e: unknown): e is AiApiError {
   return e instanceof AiApiError && (e.code === "AI_QUOTA_EXCEEDED" || e.status === 429);
+}
+
+/** Per-user limit (student / guest) — shown inline, not as the platform dialog. */
+export function isPersonalLimit(e: unknown): boolean {
+  return isQuotaError(e) && /^actor_/.test(String(e.extra.reason ?? ""));
 }

@@ -1,8 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { ArrowUp, Square } from "lucide-react";
 
-const LIMIT = 4000;
-const COUNTER_FROM = 3500;
 
 export interface ComposerHandle {
   setText: (t: string) => void;
@@ -14,10 +12,17 @@ interface Props {
   disabledReason?: string | null;
   onSend: (text: string) => void;
   onStop: () => void;
+  /** Max characters (admin 4000, widget 1500). */
+  limit?: number;
+  placeholder?: string;
+  /** Tighter padding for the floating widget. */
+  compact?: boolean;
 }
 
 /** Auto-growing textarea (1–8 rows). Enter sends, Shift+Enter adds a line. */
-const Composer = forwardRef<ComposerHandle, Props>(({ busy, disabledReason, onSend, onStop }, ref) => {
+const Composer = forwardRef<ComposerHandle, Props>(({ busy, disabledReason, onSend, onStop, limit = 4000, placeholder: basePlaceholder, compact }, ref) => {
+  const LIMIT = limit;
+  const COUNTER_FROM = Math.round(limit * 0.875);
   const [text, setText] = useState("");
   const [placeholder, setPlaceholder] = useState<string | null>(null);
   const ta = useRef<HTMLTextAreaElement>(null);
@@ -53,7 +58,7 @@ const Composer = forwardRef<ComposerHandle, Props>(({ busy, disabledReason, onSe
   };
 
   return (
-    <div className="border-t border-border/60 bg-background/95 p-3 backdrop-blur">
+    <div className={`border-t border-border/60 bg-background/95 backdrop-blur ${compact ? "p-2" : "p-3"}`}>
       <div className="mx-auto max-w-3xl">
         <div className="flex items-end gap-2 rounded-2xl border border-border/70 bg-card p-2 shadow-sm focus-within:ring-2 focus-within:ring-ring">
           <textarea
@@ -68,7 +73,7 @@ const Composer = forwardRef<ComposerHandle, Props>(({ busy, disabledReason, onSe
                 submit();
               }
             }}
-            placeholder={disabledReason ?? placeholder ?? "اكتب أمراً أو سؤالاً… (Enter للإرسال، Shift+Enter لسطر جديد)"}
+            placeholder={disabledReason ?? placeholder ?? basePlaceholder ?? "اكتب أمراً أو سؤالاً… (Enter للإرسال، Shift+Enter لسطر جديد)"}
             aria-label="رسالة إلى المساعد"
             className="max-h-60 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
           />

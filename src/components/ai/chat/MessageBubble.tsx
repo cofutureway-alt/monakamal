@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Check, Copy, Download, FileText, RotateCcw, Sparkles } from "lucide-react";
@@ -35,11 +36,16 @@ export const Markdown = memo(({ text }: { text: string }) => (
         code: ({ children }) => <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.85em]">{children}</code>,
         pre: ({ children }) => <pre className="overflow-x-auto rounded-xl bg-muted p-3 text-xs" dir="ltr">{children}</pre>,
         hr: () => <hr className="border-border/60" />,
-        a: ({ href, children }) => (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-2">
-            {children}
-          </a>
-        ),
+        a: ({ href, children }) =>
+          href && href.startsWith("/") && !href.startsWith("//") ? (
+            <Link to={href} className="font-medium text-primary underline underline-offset-2">
+              {children}
+            </Link>
+          ) : (
+            <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-2">
+              {children}
+            </a>
+          ),
         table: ({ children }) => (
           <div className="overflow-x-auto rounded-xl border border-border/60">
             <table className="w-full text-sm">{children}</table>

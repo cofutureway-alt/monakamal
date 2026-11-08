@@ -94,6 +94,7 @@ import AdminLiveCalendar from "./pages/admin/AdminLiveCalendar";
 import AdminLiveSessions from "./pages/admin/AdminLiveSessions";
 import BadgeCelebration from "./components/BadgeCelebration";
 import LiveSessionBanner from "./components/live/LiveSessionBanner";
+import AiChatWidget from "./components/ai/widget/AiChatWidget";
 import LinkReplacedDialog from "./components/live/LinkReplacedDialog";
 import MobileBottomNav from "./components/MobileBottomNav";
 import Books from "./pages/Books";
@@ -124,6 +125,7 @@ const App = () => (
           <LinkReplacedDialog />
           <BadgeCelebration />
           <MobileBottomNav />
+          <AiChatWidget />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<RequireGuest><Login /></RequireGuest>} />

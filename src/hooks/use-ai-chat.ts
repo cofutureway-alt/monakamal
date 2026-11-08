@@ -37,7 +37,11 @@ const localId = (p: string) => `${p}-${Date.now()}-${++localSeq}`;
 export function useAiChat(opts: {
   conversationId: string | null;
   onConversationCreated: (id: string) => void;
-  onQuotaExceeded: (resetsAt: string | null) => void;
+  onQuotaExceeded: (resetsAt: string | null, reason: string | null) => void;
+  /** Widget visitors: anonymous id sent instead of a JWT. */
+  guestId?: string;
+  /** Do not fetch history from the database (guests cannot read it). */
+  skipHistory?: boolean;
 }) {
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [actionStates, setActionStates] = useState<Record<string, ActionState>>({});
@@ -60,7 +64,7 @@ export function useAiChat(opts: {
       setLoadError(null);
       return;
     }
-    if (ownCreated.current === id) return; // already on screen from the stream
+    if (ownCreated.current === id || opts.skipHistory) return; // already on screen / not readable
     let cancelled = false;
     setPhase("loading");
     setLoadError(null);
@@ -162,7 +166,7 @@ export function useAiChat(opts: {
       };
 
       try {
-        await streamChat({ conversation_id: convRef.current, text: trimmed, choice_id: choiceId }, onEvent, ctrl.signal);
+        await streamChat({ conversation_id: convRef.current, text: trimmed, choice_id: choiceId }, onEvent, ctrl.signal, opts.guestId);
         // Stream ended without done/error (aborted or cut): settle the bubble.
         patchAssistant(asstId, (m) =>
           m.status === "streaming"
@@ -175,7 +179,7 @@ export function useAiChat(opts: {
         if (isQuotaError(e)) {
           // Remove the optimistic pair; the dialog explains the situation.
           setMessages((list) => list.filter((m) => m.id !== asstId && m.id !== userMsg.id));
-          opts.onQuotaExceeded((e.extra.resets_at as string | null) ?? null);
+          opts.onQuotaExceeded((e.extra.resets_at as string | null) ?? null, (e.extra.reason as string | null) ?? null);
         } else {
           const err = e instanceof AiApiError ? { code: e.code, message_ar: e.messageAr } : { code: "UNKNOWN", message_ar: "حدث خطأ غير متوقع" };
           patchAssistant(asstId, (m) => ({ ...m, status: "error", statusLabel: undefined, error: err }));
