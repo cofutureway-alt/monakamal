@@ -153,6 +153,8 @@ export const requestPlanChange = (toPlan: string) =>
   invoke<{ request: PlanChangeRequest }>("ai-admin", { action: "request_plan_change", to_plan: toPlan });
 export const applyPlanChange = (requestId: string, decision: "applied" | "rejected") =>
   invoke<{ ok: true }>("ai-admin", { action: "apply_plan_change", request_id: requestId, decision });
+export const enqueueGrading = (kind: "assignment" | "quiz_attempt", targetId: string) =>
+  invoke<{ job: { id: string; status: string } }>("ai-admin", { action: "enqueue_grading", kind, target_id: targetId });
 export const getUsageDaily = () =>
   invoke<{ rows: { day: string; actor_type: string; count: number }[] }>("ai-admin", { action: "usage_daily" });
 export const getUsageLog = (actorType?: string) =>

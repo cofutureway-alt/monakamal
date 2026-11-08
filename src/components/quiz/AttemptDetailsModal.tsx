@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AiGradeSuggestion from "@/components/ai/AiGradeSuggestion";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -206,6 +207,22 @@ export default function AttemptDetailsModal({
               </div>
             ) : attempt ? (
               <>
+                {/* AI grading suggestion for written answers (admin only) */}
+                {adminMode && questions.some((q) => q.type === "fill_blank") && (
+                  <AiGradeSuggestion
+                    kind="quiz_attempt"
+                    targetId={attempt.id}
+                    questionTitle={(qid) => {
+                      const i = questions.findIndex((q) => q.id === qid);
+                      return i >= 0 ? `السؤال ${i + 1}` : "سؤال";
+                    }}
+                    onAdopt={(verdicts) => {
+                      setGrading((g) => ({ ...g, ...verdicts }));
+                      toast.success("تم تطبيق الاقتراحات على النموذج — راجعها ثم احفظ");
+                    }}
+                  />
+                )}
+
                 {/* Summary */}
                 <div className="rounded-2xl border border-border bg-card p-4 md:p-5 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">

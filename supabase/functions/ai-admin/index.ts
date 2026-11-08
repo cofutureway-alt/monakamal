@@ -412,5 +412,28 @@ Deno.serve(async (req) => {
     return json({ ok: true });
   }
 
+  // ------------------------------------------------------------ grading
+  if (action === "enqueue_grading") {
+    const kind = body.kind === "quiz_attempt" ? "quiz_attempt" : body.kind === "assignment" ? "assignment" : null;
+    const targetId = String(body.target_id ?? "");
+    if (!kind || !/^[0-9a-f-]{36}$/i.test(targetId)) return fail("INVALID", 400);
+    const { data: s } = await service.from("ai_settings").select("grading_enabled").eq("id", 1).single();
+    if (!s?.grading_enabled) return fail("GRADING_DISABLED", 409, "فعّل التصحيح الآلي من إعدادات الذكاء الاصطناعي أولاً");
+    const table = kind === "assignment" ? "assignment_submissions" : "quiz_attempts";
+    const { data: target } = await service.from(table).select("id").eq("id", targetId).maybeSingle();
+    if (!target) return fail("NOT_FOUND", 404, "العنصر غير موجود");
+    const { data: job, error } = await service
+      .from("ai_grading_jobs")
+      .upsert(
+        { kind, target_id: targetId, status: "pending", attempts: 0, locked_until: null, error: null, result: null, applied: false, applied_at: null },
+        { onConflict: "kind,target_id" },
+      )
+      .select("*")
+      .single();
+    if (error || !job) return fail("SAVE_FAILED", 500);
+    await audit(service, caller.uid, "ai.grading.enqueue", targetId, { kind });
+    return json({ job });
+  }
+
   return fail("UNKNOWN_ACTION", 400);
 });

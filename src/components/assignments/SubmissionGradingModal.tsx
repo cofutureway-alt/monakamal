@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AiGradeSuggestion from "@/components/ai/AiGradeSuggestion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -287,6 +288,19 @@ export default function SubmissionGradingModal({
                 </div>
               )}
             </div>
+
+            {/* AI grading suggestion (admin only; fills the form, teacher still saves) */}
+            {!isReadOnly && detail.submission.status === "submitted" && (
+              <AiGradeSuggestion
+                kind="assignment"
+                targetId={detail.submission.id}
+                onAdopt={(score, fb) => {
+                  setGradeInput(String(score));
+                  if (fb) setFeedback(fb);
+                  toast.success("تم ملء الدرجة والملاحظات — راجعها ثم احفظ");
+                }}
+              />
+            )}
 
             {/* Grading (admin only) */}
             {!isReadOnly && (
