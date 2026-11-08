@@ -56,3 +56,7 @@ verify_jwt = false
 
 [functions.ai-actions]
 verify_jwt = true
+
+# Called by pg_cron with x-cron-secret.
+[functions.ai-grading-tick]
+verify_jwt = false
