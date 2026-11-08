@@ -12,6 +12,8 @@ import {
   type ToolCall,
 } from "../_shared/ai/gateway.ts";
 import { buildAdminSystemPrompt } from "../_shared/ai/prompts/admin.ts";
+import { buildGuestSystemPrompt, buildParentSystemPrompt, buildStudentSystemPrompt } from "../_shared/ai/prompts/public.ts";
+import { publicToolDefs, publicToolLabel, runPublicTool, type PublicCtx, type WidgetRole } from "../_shared/ai/tools/public.ts";
 import { ADMIN_TOOLS, getTool, runTool, toolDefs } from "../_shared/ai/tools/index.ts";
 import type { ToolCtx } from "../_shared/ai/tools/types.ts";
 
@@ -19,6 +21,22 @@ const MAX_MODEL_CALLS = 6;
 const BUDGET_MS = 100_000;
 const HISTORY_MESSAGES = 30;
 const MAX_INPUT_CHARS = 4000;
+const WIDGET_MAX_INPUT_CHARS = 1500;
+const WIDGET_MAX_MODEL_CALLS = 4;
+
+interface Actor {
+  type: "admin" | "student" | "parent" | "guest";
+  uid: string | null;
+  /** Per-actor quota key: user id, or sha256(ip|guest id) for guests. */
+  quotaKey: string;
+  /** sha256 of the guest id (conversation ownership); null for users. */
+  guestKey: string | null;
+}
+
+async function sha256(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 interface Round {
   text: string;
@@ -40,6 +58,8 @@ type Json = any;
 
 function quotaMessage(reason: string): string {
   if (reason === "plan_expired") return "انتهت صلاحية باقة الذكاء الاصطناعي.";
+  if (reason === "actor_hour") return "وصلت إلى الحد المسموح من الرسائل في هذه الساعة.";
+  if (reason === "actor_day") return "وصلت إلى الحد المسموح من الرسائل اليوم.";
   return "خدمة المحادثة الذكية غير متاحة حالياً. يرجى المحاولة لاحقاً.";
 }
 
@@ -84,8 +104,25 @@ Deno.serve(async (req) => {
 
   const service = serviceClient();
   const caller = await getCaller(req, service);
-  if (!caller) return json({ code: "UNAUTHENTICATED", message_ar: "يجب تسجيل الدخول" }, 401);
-  if (caller.role !== "admin") return json({ code: "AI_ROLE_NOT_ENABLED", message_ar: "المساعد غير متاح لحسابك بعد" }, 403);
+
+  // ---- who is talking: admin / student / parent (JWT) or guest (anonymous id)
+  let actor: Actor;
+  if (caller) {
+    if (caller.isBanned) return json({ code: "FORBIDDEN", message_ar: "هذا الحساب موقوف" }, 403);
+    actor = { type: caller.role, uid: caller.uid, quotaKey: caller.uid, guestKey: null };
+  } else {
+    if (req.headers.get("Authorization")?.startsWith("Bearer ey")) {
+      // A token was sent but is invalid/expired: do not silently downgrade to guest.
+      return json({ code: "UNAUTHENTICATED", message_ar: "انتهت الجلسة، سجّل الدخول مرة أخرى" }, 401);
+    }
+    const gid = req.headers.get("x-ai-guest") ?? "";
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(gid)) {
+      return json({ code: "UNAUTHENTICATED", message_ar: "يجب تسجيل الدخول" }, 401);
+    }
+    const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "0.0.0.0";
+    actor = { type: "guest", uid: null, quotaKey: await sha256(`${ip}|${gid}`), guestKey: await sha256(`guest|${gid}`) };
+  }
+  const isAdmin = actor.type === "admin";
 
   let body: Json;
   try {
@@ -95,11 +132,17 @@ Deno.serve(async (req) => {
   }
   const text = String(body?.message?.text ?? "").trim();
   const choiceId = typeof body?.message?.choice_id === "string" ? body.message.choice_id.slice(0, 80) : undefined;
+  const maxChars = isAdmin ? MAX_INPUT_CHARS : WIDGET_MAX_INPUT_CHARS;
   if (!text) return json({ code: "EMPTY", message_ar: "اكتب رسالتك أولاً" }, 400);
-  if (text.length > MAX_INPUT_CHARS) return json({ code: "TOO_LONG", message_ar: "الرسالة طويلة جداً" }, 400);
+  if (text.length > maxChars) return json({ code: "TOO_LONG", message_ar: "الرسالة طويلة جداً" }, 400);
 
-  const { data: settings } = await service.from("ai_settings").select("admin_chat_enabled").eq("id", 1).maybeSingle();
-  if (!settings?.admin_chat_enabled) return json({ code: "AI_DISABLED", message_ar: "مساعد الإدارة متوقف من الإعدادات" }, 403);
+  const { data: settings } = await service.from("ai_settings").select("admin_chat_enabled, chatbot_enabled").eq("id", 1).maybeSingle();
+  if (isAdmin && !settings?.admin_chat_enabled) {
+    return json({ code: "AI_DISABLED", message_ar: "مساعد الإدارة متوقف من الإعدادات" }, 403);
+  }
+  if (!isAdmin && !settings?.chatbot_enabled) {
+    return json({ code: "AI_DISABLED", message_ar: "المساعد الذكي غير متاح حالياً" }, 403);
+  }
 
   let provider, apiKey: string;
   try {
@@ -114,12 +157,14 @@ Deno.serve(async (req) => {
   // Conversation (owner check) — create when absent.
   let conversationId: string | null = typeof body?.conversation_id === "string" ? body.conversation_id : null;
   if (conversationId) {
-    const { data: conv } = await service.from("ai_conversations").select("id, user_id").eq("id", conversationId).maybeSingle();
-    if (!conv || conv.user_id !== caller.uid) return json({ code: "NOT_FOUND", message_ar: "المحادثة غير موجودة" }, 404);
+    const { data: conv } = await service.from("ai_conversations").select("id, user_id, guest_key, role").eq("id", conversationId).maybeSingle();
+    const owns = conv && conv.role === actor.type &&
+      (actor.uid ? conv.user_id === actor.uid : conv.guest_key === actor.guestKey);
+    if (!owns) return json({ code: "NOT_FOUND", message_ar: "المحادثة غير موجودة" }, 404);
   } else {
     const { data: conv, error } = await service
       .from("ai_conversations")
-      .insert({ user_id: caller.uid, role: "admin", title: null })
+      .insert({ user_id: actor.uid, guest_key: actor.guestKey, role: actor.type, title: null })
       .select("id")
       .single();
     if (error || !conv) return json({ code: "SAVE_FAILED", message_ar: "تعذّر بدء المحادثة" }, 500);
@@ -128,9 +173,9 @@ Deno.serve(async (req) => {
 
   // Quota: one user message = one unit.
   const { data: quota, error: quotaError } = await service.rpc("ai_consume_quota", {
-    _actor_type: "admin",
-    _actor_key: caller.uid,
-    _surface: "admin_chat",
+    _actor_type: actor.type,
+    _actor_key: actor.quotaKey,
+    _surface: isAdmin ? "admin_chat" : "widget",
     _conversation: conversationId,
   });
   if (quotaError) return json({ code: "QUOTA_CHECK_FAILED", message_ar: "تعذّر التحقق من الحصة" }, 500);
@@ -160,10 +205,11 @@ Deno.serve(async (req) => {
   const history = buildHistory((recent ?? []).reverse());
 
   const resolved = new Set<string>((entities ?? []).map((e) => String(e.entity_id).toLowerCase()));
-  resolved.add(caller.uid.toLowerCase());
+  if (actor.uid) resolved.add(actor.uid.toLowerCase());
+  // Admin tool context (only used when isAdmin; caller is non-null then).
   const ctx: ToolCtx = {
     service,
-    caller,
+    caller: caller!,
     conversationId: conversationId!,
     resolved,
     async remember(items) {
@@ -201,12 +247,21 @@ Deno.serve(async (req) => {
       send("status", { label_ar: "يفكّر…" });
 
       try {
-        const system = buildAdminSystemPrompt({ adminName: caller.fullName });
+        const widgetRole = actor.type === "admin" ? null : (actor.type as WidgetRole);
+        const system = !widgetRole
+          ? buildAdminSystemPrompt({ adminName: caller?.fullName ?? null })
+          : widgetRole === "student"
+            ? buildStudentSystemPrompt({ name: caller?.fullName ?? null })
+            : widgetRole === "parent"
+              ? buildParentSystemPrompt({ name: caller?.fullName ?? null })
+              : buildGuestSystemPrompt();
         const messages: GatewayMessage[] = [...history];
-        const tools = toolDefs(ADMIN_TOOLS);
+        const tools = widgetRole ? publicToolDefs(widgetRole) : toolDefs(ADMIN_TOOLS);
+        const publicCtx: PublicCtx | null = widgetRole ? { service, uid: actor.uid, role: widgetRole } : null;
+        const maxCalls = isAdmin ? MAX_MODEL_CALLS : WIDGET_MAX_MODEL_CALLS;
         let finished = false;
 
-        for (let call = 0; call < MAX_MODEL_CALLS && !finished; call++) {
+        for (let call = 0; call < maxCalls && !finished; call++) {
           if (Date.now() - started > BUDGET_MS) break;
           const res = await callModel({ provider, apiKey, system, messages, tools, toolChoice: "auto" });
           usage.in += res.usage.in;
@@ -225,9 +280,9 @@ Deno.serve(async (req) => {
           let proposed = false;
 
           for (const tc of res.toolCalls) {
-            const tool = getTool(tc.name);
-            const label = tool?.label_ar ?? tc.name;
-            const kind = tool?.kind ?? "read";
+            const tool = publicCtx ? undefined : getTool(tc.name);
+            const label = publicCtx ? publicToolLabel(tc.name) : tool?.label_ar ?? tc.name;
+            const kind = publicCtx ? (tc.name === "ask_clarification" ? "meta" : "read") : tool?.kind ?? "read";
             send("tool_start", { name: tc.name, label_ar: label, kind });
             const t0 = Date.now();
 
@@ -235,8 +290,21 @@ Deno.serve(async (req) => {
             // After a clarification or proposal in this round, the remaining
             // calls are skipped (the admin must answer / confirm first).
             if (endTurn) {
-              content = JSON.stringify({ skipped: true, reason: "waiting for the admin" });
+              content = JSON.stringify({ skipped: true, reason: "waiting for the user" });
               send("tool_end", { name: tc.name, ok: true, summary_ar: "تم التخطي" });
+            } else if (publicCtx) {
+              // Widget roles: read-only tools + clarification, nothing else exists.
+              const out = await runPublicTool(publicCtx, tc.name, tc.arguments ?? {});
+              content = out.modelContent;
+              let summary = "";
+              if (out.kind === "read") summary = out.summary_ar;
+              else if (out.kind === "clarify") {
+                blocks.push(out.block);
+                summary = "سؤال توضيحي";
+                endTurn = true;
+              } else summary = out.message_ar;
+              send("tool_end", { name: tc.name, ok: out.ok, summary_ar: summary });
+              trace.push({ name: tc.name, label_ar: label, kind, ok: out.ok, summary_ar: summary, ms: Date.now() - t0 });
             } else {
               const out = await runTool(ctx, tc.name, tc.arguments ?? {});
               content = out.modelContent;
@@ -250,7 +318,7 @@ Deno.serve(async (req) => {
                   .from("ai_pending_actions")
                   .insert({
                     conversation_id: conversationId,
-                    created_by: caller.uid,
+                    created_by: actor.uid!, // admin branch: always a user
                     tool: tc.name,
                     args: tc.arguments,
                     preview: p,
