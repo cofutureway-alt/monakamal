@@ -134,3 +134,31 @@ Deno.test("errors: 401 → AI_AUTH (no retry), 404 → AI_MODEL_NOT_FOUND, 500 r
     },
   );
 });
+
+Deno.test("padded text/event-stream reply + stream:false + reasoning-only content (ai.fakarli.com)", async () => {
+  const reply = {
+    id: "gen-1",
+    choices: [{ finish_reason: "length", message: { role: "assistant", content: null, reasoning: "The user said ping" } }],
+    usage: { prompt_tokens: 794, completion_tokens: 16 },
+  };
+  await withServer(
+    () => new Response(`\n         \n: OPENROUTER PROCESSING\n\n${JSON.stringify(reply)}`, { headers: { "Content-Type": "text/event-stream" } }),
+    async (base, seen) => {
+      const r = await callModel({ provider: provider("openai_compatible", `${base}/v1`), apiKey: "k", system: "S", messages: [{ role: "user", content: "ping" }] });
+      assert(seen[0].body.stream === false, "stream:false sent");
+      assert(r.text === "" && r.reasoning === "The user said ping", "reasoning kept, no error");
+      assert(r.usage.in === 794, "usage parsed");
+    },
+  );
+});
+
+Deno.test("provider error text is surfaced (sanitised) on failures", async () => {
+  await withServer(() => new Response('{"error":{"message":"Provider returned error"}}', { status: 502 }), async (base) => {
+    try {
+      await callModel({ provider: provider("openai_compatible", base), apiKey: "k", system: "S", messages: [{ role: "user", content: "x" }] });
+      throw new Error("should fail");
+    } catch (e) {
+      assert(e instanceof GatewayError && e.code === "AI_BAD_RESPONSE" && e.detail === "Provider returned error", String(e));
+    }
+  });
+});

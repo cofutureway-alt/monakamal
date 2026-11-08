@@ -82,21 +82,30 @@ async function runChecks(provider: ProviderRow, apiKey: string): Promise<{ check
   let pingMs = 0;
   try {
     const { v, ms } = await timed(() =>
-      callModel({ provider, apiKey, system: "Reply with: ok", messages: [{ role: "user", content: "ping" }], maxTokens: 16, timeoutMs: 30_000 })
+      // 512 tokens: "thinking" models spend the first tokens on reasoning.
+      callModel({ provider, apiKey, system: "Reply with: ok", messages: [{ role: "user", content: "ping" }], maxTokens: 512, timeoutMs: 45_000 })
     );
     pingMs = ms;
     checks.push({ key: "auth", ok: true, ms, detail_ar: "المفتاح صالح" });
-    if (!v.text.trim() && !v.toolCalls.length) {
+    if (!v.text.trim() && !v.toolCalls.length && !v.reasoning.trim()) {
       stopWith("model", ms, "النموذج لم يُرجع أي نص");
       return { checks, supportsTools };
     }
-    checks.push({ key: "model", ok: true, ms, detail_ar: "النموذج يستجيب" });
+    checks.push({
+      key: "model",
+      ok: true,
+      ms,
+      detail_ar: v.text.trim() ? "النموذج يستجيب" : "النموذج يستجيب (نموذج تفكير — يحتاج حداً كافياً لطول الرد)",
+    });
   } catch (e) {
     const code = e instanceof GatewayError ? e.code : "AI_UNREACHABLE";
-    if (code === "AI_AUTH") stopWith("auth", pingMs, "مفتاح API غير صالح");
+    // Show the provider's own message (sanitised, ≤160 chars) next to ours.
+    const detail = e instanceof GatewayError && e.detail ? ` — ${e.status ? `HTTP ${e.status}: ` : ""}${e.detail}` : "";
+    if (code === "AI_AUTH") stopWith("auth", pingMs, `مفتاح API غير صالح${detail}`);
     else {
       checks.push({ key: "auth", ok: true, ms: pingMs, detail_ar: "تم قبول الطلب" });
-      stopWith("model", pingMs, code === "AI_MODEL_NOT_FOUND" ? "معرّف النموذج غير موجود" : GATEWAY_ERROR_AR[code as keyof typeof GATEWAY_ERROR_AR] ?? "فشل الاستدعاء");
+      const base = code === "AI_MODEL_NOT_FOUND" ? "معرّف النموذج غير موجود" : GATEWAY_ERROR_AR[code as keyof typeof GATEWAY_ERROR_AR] ?? "فشل الاستدعاء";
+      stopWith("model", pingMs, `${base}${detail}`);
     }
     return { checks, supportsTools };
   }
@@ -111,8 +120,8 @@ async function runChecks(provider: ProviderRow, apiKey: string): Promise<{ check
         messages: [{ role: "user", content: "Call echo with text ok." }],
         tools: [{ name: "echo", description: "Echo text back.", parameters: { type: "object", properties: { text: { type: "string" } }, required: ["text"] } }],
         toolChoice: "echo",
-        maxTokens: 64,
-        timeoutMs: 30_000,
+        maxTokens: 1024,
+        timeoutMs: 60_000,
       })
     );
     const call = v.toolCalls.find((c) => c.name === "echo");
@@ -136,8 +145,8 @@ async function runChecks(provider: ProviderRow, apiKey: string): Promise<{ check
         apiKey,
         system: "أنت مساعد مختصر.",
         messages: [{ role: "user", content: 'أجب بكلمة واحدة فقط: ما عكس كلمة "نعم"؟' }],
-        maxTokens: 32,
-        timeoutMs: 30_000,
+        maxTokens: 1024,
+        timeoutMs: 60_000,
       })
     );
     const ok = /[؀-ۿ]/.test(v.text);

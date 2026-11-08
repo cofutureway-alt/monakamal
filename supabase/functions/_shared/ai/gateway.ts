@@ -2,6 +2,7 @@
 // Non-streaming on purpose — tool loops need whole responses; the user-facing
 // stream is produced by ai-chat itself.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { parseProviderBody, providerErrorDetail } from "./pure/provider-body.ts";
 
 export type ApiFormat = "openai_compatible" | "anthropic";
 
@@ -36,6 +37,8 @@ export type GatewayMessage =
 
 export interface ModelResult {
   text: string;
+  /** Reasoning text from "thinking" models (not shown to users). */
+  reasoning: string;
   toolCalls: ToolCall[];
   usage: { in: number; out: number };
   stopReason: string;
@@ -52,7 +55,7 @@ export type GatewayErrorCode =
   | "AI_NOT_CONFIGURED";
 
 export class GatewayError extends Error {
-  constructor(public code: GatewayErrorCode, public status = 0, detail = "") {
+  constructor(public code: GatewayErrorCode, public status = 0, public detail = "") {
     super(`${code}${status ? `:${status}` : ""}${detail ? `:${detail}` : ""}`);
   }
 }
@@ -80,13 +83,13 @@ function endpoint(p: Pick<ProviderRow, "api_format" | "base_url">): string {
 }
 
 function classify(status: number, body: string): GatewayError {
-  const short = body.replace(/\s+/g, " ").slice(0, 160);
-  if (status === 401 || status === 403) return new GatewayError("AI_AUTH", status);
-  if (status === 404 || /model/i.test(body) && status === 400 && /not.?found|does not exist|invalid model/i.test(body)) {
-    return new GatewayError("AI_MODEL_NOT_FOUND", status);
+  const detail = providerErrorDetail(body);
+  if (status === 401 || status === 403) return new GatewayError("AI_AUTH", status, detail);
+  if (status === 404 || (status === 400 && /model/i.test(body) && /not.?found|does not exist|invalid model|not a valid model|unknown model/i.test(body))) {
+    return new GatewayError("AI_MODEL_NOT_FOUND", status, detail);
   }
-  if (status === 429) return new GatewayError("AI_RATE_LIMITED", status);
-  return new GatewayError("AI_BAD_RESPONSE", status, short);
+  if (status === 429) return new GatewayError("AI_RATE_LIMITED", status, detail);
+  return new GatewayError("AI_BAD_RESPONSE", status, detail);
 }
 
 // ---------------------------------------------------------------- request shapes
@@ -122,6 +125,8 @@ function openaiBody(
     messages: out,
     temperature: Number(p.temperature),
     max_tokens: maxTokens,
+    // Explicit: some OpenAI-compatible gateways stream by default.
+    stream: false,
   };
   if (tools.length) {
     body.tools = tools.map((t) => ({
@@ -199,6 +204,7 @@ function parseOpenAI(json: any): Omit<ModelResult, "latencyMs"> {
     ? msg.content
     // deno-lint-ignore no-explicit-any
     : Array.isArray(msg.content) ? msg.content.map((p: any) => p?.text ?? "").join("") : "";
+  const reasoning = typeof msg.reasoning === "string" ? msg.reasoning : typeof msg.reasoning_content === "string" ? msg.reasoning_content : "";
   // deno-lint-ignore no-explicit-any
   const toolCalls: ToolCall[] = (msg.tool_calls ?? []).map((c: any, i: number) => ({
     id: String(c.id ?? `call_${i}`),
@@ -207,6 +213,7 @@ function parseOpenAI(json: any): Omit<ModelResult, "latencyMs"> {
   }));
   return {
     text,
+    reasoning,
     toolCalls,
     usage: { in: json.usage?.prompt_tokens ?? 0, out: json.usage?.completion_tokens ?? 0 },
     stopReason: String(choice.finish_reason ?? ""),
@@ -217,13 +224,16 @@ function parseOpenAI(json: any): Omit<ModelResult, "latencyMs"> {
 function parseAnthropic(json: any): Omit<ModelResult, "latencyMs"> {
   if (!Array.isArray(json?.content)) throw new GatewayError("AI_BAD_RESPONSE", 200, "no content");
   let text = "";
+  let reasoning = "";
   const toolCalls: ToolCall[] = [];
   for (const b of json.content) {
     if (b.type === "text") text += b.text ?? "";
+    if (b.type === "thinking") reasoning += b.thinking ?? "";
     if (b.type === "tool_use") toolCalls.push({ id: String(b.id), name: String(b.name), arguments: parseArgs(b.input) });
   }
   return {
     text,
+    reasoning,
     toolCalls,
     usage: { in: json.usage?.input_tokens ?? 0, out: json.usage?.output_tokens ?? 0 },
     stopReason: String(json.stop_reason ?? ""),
@@ -269,11 +279,11 @@ export async function callModel(opts: {
     const raw = await res.text().catch(() => "");
     clearTimeout(timer);
     if (!res.ok) throw classify(res.status, raw);
-    let json: unknown;
-    try {
-      json = JSON.parse(raw);
-    } catch {
-      throw new GatewayError("AI_BAD_RESPONSE", res.status, "not json");
+    // Tolerates SSE padding / keep-alive comments and real streamed chunks.
+    const json = parseProviderBody(raw);
+    if (!json) throw new GatewayError("AI_BAD_RESPONSE", res.status, providerErrorDetail(raw) || "not json");
+    if (json.error && !json.choices && !json.content) {
+      throw classify(Number(json.error?.code) || 502, raw);
     }
     const parsed = p.api_format === "openai_compatible" ? parseOpenAI(json) : parseAnthropic(json);
     return { ...parsed, latencyMs: Date.now() - started };
