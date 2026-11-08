@@ -56,6 +56,11 @@ export function useAiChat(opts: {
   // Load history when switching conversations.
   useEffect(() => {
     const id = opts.conversationId;
+    // The id we just received from our own stream ("meta" event) is the same
+    // conversation: keep the reply that is still streaming in. Only a switch to
+    // another conversation (or a new chat) cancels the in-flight request.
+    if (id && id === ownCreated.current) return;
+    ownCreated.current = null; // coming back to that conversation later reloads it from the DB
     abortRef.current?.abort();
     if (!id) {
       setMessages([]);
@@ -64,7 +69,7 @@ export function useAiChat(opts: {
       setLoadError(null);
       return;
     }
-    if (ownCreated.current === id || opts.skipHistory) return; // already on screen / not readable
+    if (opts.skipHistory) return; // guests cannot read stored history
     let cancelled = false;
     setPhase("loading");
     setLoadError(null);

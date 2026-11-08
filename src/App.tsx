@@ -246,8 +246,9 @@ const App = () => (
               <Route path="settings" element={<AdminSettings />} />
               <Route path="settings/mcp" element={<AdminMcpSettings />} />
               <Route path="settings/ai" element={<AdminAiSettings />} />
-              <Route path="ai" element={<AdminAiChat />} />
-              <Route path="ai/:conversationId" element={<AdminAiChat />} />
+              {/* One route with an optional id: moving from /admin/ai to /admin/ai/:id after
+                  the first reply must not remount the page (it would drop the live stream). */}
+              <Route path="ai/:conversationId?" element={<AdminAiChat />} />
               <Route path="settings/video-player" element={<AdminVideoPlayerSettings />} />
               <Route path="settings/registration-form" element={<AdminRegistrationForm />} />
               <Route path="settings/student-qr" element={<AdminQrSettings />} />
